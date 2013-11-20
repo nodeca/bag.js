@@ -129,8 +129,8 @@ instance properties (they have the same names). Options:
    multiple instances.
 - `stores` - Array of storage names to use, ordered by preference.
   Default `['indexeddb', 'websql', 'localstorage']`.
-- `timeout` - files loading timeout, in ms. Default 20000.
-- `expire` - Storage data expiration, in hours. Default - 50 years.
+- `timeout` - files loading timeout, in seconds. Default 20.
+- `expire` - `require()` data expiration, in hours. Default - 1 month. 0 - don't expire.
 
 Note: you can skip `new` keyword, calling `Bag()` will return you new instance anyway.
 
@@ -152,7 +152,7 @@ Note: you can skip `new` keyword, calling `Bag()` will return you new instance a
 resource info:
 
 - `url` - resource URI, required.
-- `expire` - optional, expiration time in hours.
+- `expire` - optional, expiration time in hours. 0 or not set - don't expire.
 - `key` - the name, used to store loaded file, if not defined, then `url`
    will be used.
 - `unique` - a token stored with the cached item. If you request the same item
@@ -183,7 +183,7 @@ Put data into storage under `key` name.
 - `key` - String to address data.
 - `data` - JS object to store. We currently support only objects, serializeable
   by JSON. Don't try to put functions or arraybuffers.
-- `expire` - Expiration time. Don't expire by default.
+- `expire` - Expiration time in seconds. Don't expire by default.
 - `callback(err)` - Function to call when compleete. `err` contains error
   on fail.
 

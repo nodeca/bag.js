@@ -88,7 +88,7 @@
     var obj = {};
 
     if (expire) {
-      obj.expire = +(new Date()) + expire * 60 * 60;
+      obj.expire = +(new Date()) + expire * 1000;
     }
     obj.value = value;
 
@@ -261,10 +261,11 @@
 
     options = options || {};
 
-    this.prefix    = options.namespace || 'bag';
-    this.timeout      = options.timeout || 20*1000; // 20 seconds
-    this.expire       = options.expire || 24*30*12*50; // 50 years
-    this.isValidItem  = null;
+    this.prefix       = options.namespace || 'bag';
+    this.timeout      = options.timeout || 20;    // 20 seconds
+    this.expire       = options.expire || 30*24;  // 30 days
+    this.isValidItem  = options.isValidItem || null;
+    
     this.stores = _isArray(options.stores) ? options.stores : ['indexeddb','websql','localstorage'];
 
     var storage = null;
@@ -294,7 +295,7 @@
           callback(new Error('Timeout'));
           callback = _nope;
         }
-      }, self.timeout );
+      }, self.timeout * 1000);
 
       xhr.send();
     }
@@ -309,9 +310,12 @@
         obj.originalType = result.type;
         obj.type = obj.type || result.type;
         obj.stamp = now;
-        obj.expire = now + ((obj.expire || self.expire ) * 60 * 60 * 1000);
 
-        self.set(obj.key, obj, function() {
+        if (obj.expire || self.expire ) {
+          obj.expire = now + ((obj.expire || self.expire) * 60 * 60 * 1000);
+        }
+
+        self.set(obj.key, obj, (obj.expire || self.expire)*60*60*1000, function() {
           // Don't check error - have to return data anyway
           callback(null, obj);
         });
