@@ -19,7 +19,7 @@ Key differences are:
 - Embedded injector for CSS files
 - additional `set` method, to use `bag.js` as KV storage
 
-__Examples__
+### Examples
 
 Simple:
 
@@ -118,7 +118,7 @@ Note: you can skip `new` keyword, calling `Bag()` will return you new instance a
 - `String` - just resource url, other params will be default
 - `Array(Object|String)` - list of resources to load in parallel.
 
-resource options:
+resource info:
 
 - `url` - resource URI, required.
 - `expire` - optional, expiration time in hours.
@@ -169,6 +169,18 @@ Clear all storage data (in your namespace), or just expired objects when called
 as `bag.clear(true, ...)`. Callback is optional.
 
 
+### .addHandler(types, handler)
+
+Add handler for loaded files with specified mime types. By default, handlers for `application/javascript` and `text/css` already exist. If you set `execute: false` in resource info, then handler will not be applied.
+
+`types` - `String` with mime type or `Array` of strings
+
+
+### .removeHandler(types)
+
+Remove handler for specified mime type (opposite to `addHandler`).
+
+
 Related projects
 ----------------
 
@@ -185,4 +197,3 @@ License
 Copyright (c) 2013 [Vitaly Puzrin](https://github.com/puzrin).
 Released under the MIT license. See
 [LICENSE](https://github.com/nodeca/bag.js/blob/master/LICENSE) for details.
-
