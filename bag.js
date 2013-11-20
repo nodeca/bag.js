@@ -2,7 +2,6 @@
   'use strict';
 
   var head = document.head || document.getElementsByTagName('head')[0];
-  
 
   //////////////////////////////////////////////////////////////////////////////
   // helpers
@@ -21,16 +20,18 @@
     return Object.prototype.toString.call(obj) === '[object Function]';
   };
 
+
   function _each(arr, iterator) {
     if (arr.forEach) {
       return arr.forEach(iterator);
     }
-    for (var i = 0; i < arr.length; i += 1) {
+    for (var i = 0; i < arr.length; i++) {
       if (iterator(arr[i], i, arr) === false) {
         break;
       }
     }
   }
+
 
   function _asyncEach(arr, iterator, callback) {
     callback = callback || function () {};
@@ -42,8 +43,7 @@
         if (err) {
           callback(err);
           callback = _nope;
-        }
-        else {
+        } else {
           completed += 1;
           if (completed >= arr.length) {
             callback();
@@ -61,25 +61,28 @@
     this.ns = namespace + '__';
   };
 
+
   DomStorage.prototype.exists = function() {
     try {
       localStorage.setItem('__ls_test__','__ls_test__');
       localStorage.removeItem('__ls_test__');
       return true;
-
     } catch (e) {
       return false;
     }
   };
 
+
   DomStorage.prototype.init = function (callback) {
     callback();
   };
+
 
   DomStorage.prototype.remove = function (key, callback) {
     localStorage.removeItem(this.ns + key);
     callback();
   };
+
 
   DomStorage.prototype.set = function (key, value, expire, callback) {
     var obj = {};
@@ -98,21 +101,31 @@
     }
   };
 
+
   DomStorage.prototype.get = function (key, callback) {
     try {
       var obj = JSON.parse(localStorage.getItem(this.ns + key));
       return callback(null, obj.value);
     } catch (e) {
-      callback(e);
+      return callback(e);
     }
   };
 
+
   DomStorage.prototype.clear = function (expiredOnly, callback) {
+/*
+    var re = new RegExp(this.ns+'.+');
+    for (var item in localStorage) {
+      if (item.match(re)) {
+        localStorage.removeItem(item.match(re)[0]);
+      }
+    }
+*/
     callback();
   };
 
 
-  //////////////////////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////////////
   // key/value storage with expiration
 
   var storeAdapters = {
@@ -121,12 +134,12 @@
     'localstore': DomStorage
   };
 
+
   // namespace - db name or similar
   // storesList - array of allowed adapter names to use
   //
   var Storage = function (namespace, storesList) {
-
-    var db;
+    var self = this;
 
     // States of db init singletone process
     // 'done' / 'progress' / 'failed' / undefined
@@ -134,21 +147,21 @@
     this.initStack = [];
 
     _each(storesList, function(name) {
-      if (storeAdapters[name]) {
-        console.log('Wrong storage adapter name: ' + name);
+      if (!storeAdapters[name]) {
+        console.log('Wrong storage adapter name: ' + name, storesList);
         return false;
       }
-
-      if (storeAdapters[name].exists()) {
-        db = new storeAdapters[name](namespace);
+      if (storeAdapters[name].prototype.exists()) {
+        self.db = new storeAdapters[name](namespace);
         return false; // terminate on success
       }
     });
 
-    if (!db) {
+    if (!self.db) {
       console.log('None of requested storages available: ' + storesList);
     }
   };
+
 
   Storage.prototype.init = function (callback) {
     var self = this;
@@ -177,35 +190,42 @@
     });
   };
 
+
   Storage.prototype.set = function (key, value, expire, callback) {
+    var self = this;
     if (_isFunction(expire)) {
       callback = expire;
       expire = undefined;
     }
     callback = callback || function () {};
-
     this.init(function(err) {
       if (err) { return callback(err); }
-      this.db.set(key, value, expire, callback);
+      self.db.set(key, value, expire, callback);
     });
   };
+
 
   Storage.prototype.get = function (key, callback) {
+    var self = this;
     this.db.init(function(err) {
       if (err) { return callback(err); }
-      this.db.get(key, callback);
+      self.db.get(key, callback);
     });
   };
 
+
   Storage.prototype.remove = function (key, callback) {
+    var self = this;
     callback = callback || function () {};
     this.db.init(function(err) {
       if (err) { return callback(err); }
-      this.db.remove(key, callback);
+      self.db.remove(key, callback);
     });
   };
 
+
   Storage.prototype.clear = function (expiredOnly, callback) {
+    var self = this;
     if (_isFunction(expiredOnly)) {
       callback = expiredOnly;
       expiredOnly = false;
@@ -214,19 +234,19 @@
 
     this.db.init(function(err) {
       if (err) { return callback(err); }
-      this.db.clear(expiredOnly, callback);
+      self.db.clear(expiredOnly, callback);
     });
   };
 
 
   //////////////////////////////////////////////////////////////////////////////
   // Bag class implementation
-  
+
   function Bag(options) {
 
     var self = this;
 
-    this.namespace    = options.namespace || 'bag';
+    this.prefix    = options.namespace || 'bag';
     this.timeout      = options.timeout || 20*1000; // 20 seconds
     this.expire       = options.expire || 24*30*12*50; // 50 years
     this.isValidItem  = null;
@@ -236,9 +256,7 @@
 
     function getUrl(url, callback) {
       var xhr = new XMLHttpRequest();
-    
       xhr.open( 'GET', url );
-
       xhr.onreadystatechange = function() {
         if (xhr.readyState === 4) {
           if (xhr.status === 200) {
@@ -254,8 +272,9 @@
         }
       };
 
+
       setTimeout(function () {
-        if( xhr.readyState < 4 ) {
+        if (xhr.readyState < 4) {
           xhr.abort();
           callback(new Error('Timeout'));
           callback = _nope;
@@ -267,20 +286,17 @@
 
 
     function saveUrl(obj, callback) {
-
       getUrl(obj.url, function(err, result) {
-
         if (err) { return callback(err); }
-
-        // wrap store data      
+        // wrap store data
         var now = +new Date();
         obj.data = result.content;
         obj.originalType = result.type;
         obj.type = obj.type || result.type;
         obj.stamp = now;
-        obj.expire = now + ( ( obj.expire || self.expire ) * 60 * 60 * 1000 );
-        
-        self.storage.set(obj.key, obj, function() {
+        obj.expire = now + ((obj.expire || self.expire ) * 60 * 60 * 1000);
+
+        self.set(obj.key, obj, function() {
           // Don't check error - have to return data anyway
           callback(null, obj);
         });
@@ -297,19 +313,17 @@
 
 
     function fetch(obj, callback) {
-    
-      if ( !obj.url ) { return callback(); }
-      obj.key =  (obj.key || obj.url);
 
-      self.storage.get(obj.key, function(err_cache, cached) {
+      if (!obj.url) { return callback(); }
+      obj.key = (obj.key || obj.url);
+
+      self.get(obj.key, function(err_cache, cached) {
         // don't check errors here - if can't get object from store,
         // then just load it from web.
-      
         obj.execute = (obj.execute !== false);
         var shouldFetch = !!err_cache || isCacheValid(cached, obj);
 
         // If don't have to load new date - return one from cache
-
         if (!obj.live && !shouldFetch) {
           cached.type = obj.type || cached.originalType;
           callback(null, cached);
@@ -320,7 +334,7 @@
 
         if (obj.unique) {
           // set parameter to prevent browser cache
-          obj.url += ( ( obj.url.indexOf('?') > 0 ) ? '&' : '?' ) + 'basket-unique=' + obj.unique;
+          obj.url += ( ( obj.url.indexOf('?') > 0 ) ? '&' : '?' ) + 'bag-unique=' + obj.unique;
         }
 
         saveUrl(obj, function(err_load) {
@@ -334,7 +348,6 @@
 
 
     var handlers = {
-
       'application/javascript': function injectScript(obj) {
         var script = document.createElement('script');
 
@@ -376,15 +389,17 @@
     this.require = function(resourses, callback) {
       var res = _isArray(resourses) ? resourses : [resourses];
 
-      if (!storage) { storage = new Storage(self.prefix, self.stores); }
+      if (!storage) { storage = new Storage(self.namespace, self.stores); }
 
       _asyncEach(res, fetch, function(err) {
         if (err) { return callback(err); }
-        
+
         _each(res, function(obj) {
-          if (obj.execute) { execute(obj); }
+          if (obj.execute) {
+            execute(obj);
+          }
         });
-        
+
         callback(null, resourses);
       });
     };
@@ -395,15 +410,18 @@
       storage.remove(key, callback);
     };
 
+
     this.get = function (key, callback) {
       if (!storage) { storage = new Storage(self.prefix, self.stores); }
       storage.get(key, callback);
     };
 
-    this.set = function (key, data, callback) {
+
+    this.set = function (key, data, expire, callback) {
       if (!storage) { storage = new Storage(self.prefix, self.stores); }
-      storage.set(key, data, callback);
+      storage.set(key, data, expire, callback);
     };
+
 
     this.clear = function (expired, callback) {
       if (!storage) { storage = new Storage(self.prefix, self.stores); }
@@ -416,12 +434,12 @@
       _each(types, function (type) { handlers[type] = handler; });
     };
 
+
     this.removeHandler = function (types) {
       self.addHandler(types, undefined);
     };
-
   }
-  
+
 
   window.Bag = Bag;
 
