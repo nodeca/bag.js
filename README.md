@@ -85,6 +85,37 @@ window.Bag()
   });
 ```
 
+Using as kv storage:
+
+``` javascript
+var obj = { lorem: 'ipsum' };
+var bag = new window.Bag();
+
+bag.set('dolorem', obj, function(err) {
+  if (err) {
+    console.log('Saving error: ', err);
+    return;
+  }
+  
+  bag.get('dolorem', function(err, data) {
+    if (err) {
+      console.log('Loading error: ', err);
+      return;
+    }
+
+    console.log('Loaded data:\n', data);
+
+    bag.remove('dolorem', function(err) {
+      if (err) {
+        console.log('Removing error: ', err);
+        return;
+      }
+
+      console.log('Compleete');
+    }
+  }
+});
+```
 
 API
 ---
@@ -171,7 +202,9 @@ as `bag.clear(true, ...)`. Callback is optional.
 
 ### .addHandler(types, handler)
 
-Add handler for loaded files with specified mime types. By default, handlers for `application/javascript` and `text/css` already exist. If you set `execute: false` in resource info, then handler will not be applied.
+Add handler for loaded files with specified mime types. By default, handlers
+for `application/javascript` and `text/css` already exist. If you set
+`execute: false` in resource info, then handler will not be applied.
 
 `types` - `String` with mime type or `Array` of strings
 
