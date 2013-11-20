@@ -1,0 +1,28 @@
+<html>
+  <head>
+    <title>Bag.js tests</title>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="fixtures/mocha.css" />
+  </head>
+  <body>
+    <div id="mocha"></div>
+    <script src="fixtures/mocha.js"></script>
+    <script src="fixtures/chai.js"></script>
+    <script src="../bag.js"></script>
+    <script>
+      mocha.ui('bdd'); 
+      mocha.reporter('html');
+      assert = chai.assert;
+    </script>
+    <script src="test.js"></script>
+    <script>
+      if (window.mochaPhantomJS) {
+        mochaPhantomJS.run();
+      } else {
+        mocha.run();
+      }
+    </script>
+  </body>
+</html>
+
+

@@ -103,11 +103,18 @@
 
 
   DomStorage.prototype.get = function (key, callback) {
+    var obj = localStorage.getItem(this.ns + key);
+
+    if (obj === null) {
+      callback(new Error('key not found: ' + key));
+      return;
+    }
+
     try {
-      var obj = JSON.parse(localStorage.getItem(this.ns + key));
-      return callback(null, obj.value);
+      var value = JSON.parse(obj).value;
+      return callback(null, value);
     } catch (e) {
-      return callback(e);
+      return callback(new Error('Can\'t unserialise data: ' + obj));
     }
   };
 
@@ -131,7 +138,7 @@
   var storeAdapters = {
     /*'indexeddb': IDB,
     'websql': WebSql,*/
-    'localstore': DomStorage
+    'localstorage': DomStorage
   };
 
 
@@ -183,10 +190,11 @@
       _each(self.initStack, function (cb) {
         cb(err);
       });
+      self.initStack = [];
 
       // Clear expired. A bit dirty without callback,
       // but we don't care until clear compleete
-      if (!err) { self.clear(); }
+      if (!err) { self.clear(true); }
     });
   };
 
@@ -246,11 +254,13 @@
 
     var self = this;
 
+    options = options || {};
+
     this.prefix    = options.namespace || 'bag';
     this.timeout      = options.timeout || 20*1000; // 20 seconds
     this.expire       = options.expire || 24*30*12*50; // 50 years
     this.isValidItem  = null;
-    this.stores = _isArray(options.stores) ? options.stores : ['indexeddb','websql','localstore'];
+    this.stores = _isArray(options.stores) ? options.stores : ['indexeddb','websql','localstorage'];
 
     var storage = null;
 
@@ -385,6 +395,10 @@
       }
     }
 
+
+    //
+    // Public methods
+    //
 
     this.require = function(resourses, callback) {
       var res = _isArray(resourses) ? resourses : [resourses];
