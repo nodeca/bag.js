@@ -12,7 +12,7 @@ describe('localStorage tests', function () {
 
   it('key set', function (done) {
     bag.set(key, obj, function (err) {
-      assert.ok(!err);
+      assert.notOk(err);
       done();
     });
   });
@@ -20,7 +20,7 @@ describe('localStorage tests', function () {
 
   it('key get', function (done) {
     bag.get(key, function (err, data) {
-      assert.ok(!err);
+      assert.notOk(err);
       assert.deepEqual(obj, data);
       done();
     });
@@ -29,9 +29,9 @@ describe('localStorage tests', function () {
 
   it('key update', function (done) {
     bag.set(key, obj2, function (err) {
-      assert.ok(!err);
+      assert.notOk(err);
       bag.get(key, function (err, data) {
-        assert.ok(!err);
+        assert.notOk(err);
         assert.deepEqual(obj2, data);
         done();
       });
@@ -41,11 +41,11 @@ describe('localStorage tests', function () {
 
   it('key remove', function (done) {
     bag.remove(key, function (err) {
-      assert.isUndefined(err);
+      assert.notOk(err);
 
       bag.get(key, function(err, data) {
-        assert.ok(!!err);
-        assert.notOk(!!data);
+        assert.ok(err);
+        assert.notOk(data);
         done();
       });
     });
