@@ -21,20 +21,28 @@
   };
 
 
-  function _each(arr, iterator) {
-    if (arr.forEach) {
-      return arr.forEach(iterator);
-    }
-    for (var i = 0; i < arr.length; i++) {
-      if (iterator(arr[i], i, arr) === false) {
-        break;
+  function _each(obj, iterator) {
+    if (_isArray(obj)) {
+      if (obj.forEach) {
+        return obj.forEach(iterator);
+      }
+      for (var i = 0; i < obj.length; i++) {
+        if (iterator(obj[i], i, obj) === false) {
+          break;
+        }
+      }
+    } else {
+      for (var k in obj) {
+        if (Object.prototype.hasOwnProperty.call(obj, k)) {
+          iterator(obj[k], k);
+        }
       }
     }
   }
 
 
   function _asyncEach(arr, iterator, callback) {
-    callback = callback || function () {};
+    callback = callback || _nope;
     if (!arr.length) { return callback(); }
 
     var completed = 0;
@@ -79,6 +87,7 @@
 
 
   DomStorage.prototype.remove = function (key, callback) {
+    callback = callback || _nope;
     localStorage.removeItem(this.ns + key);
     callback();
   };
@@ -88,7 +97,7 @@
     var obj = {};
 
     if (expire) {
-      obj.expire = +(new Date()) + expire * 1000;
+      obj.expire = +(new Date()) + (expire * 1000);
     }
     obj.value = value;
 
@@ -102,7 +111,12 @@
   };
 
 
-  DomStorage.prototype.get = function (key, callback) {
+  DomStorage.prototype.get = function (key, raw, callback) {
+    if (_isFunction(raw)) {
+      callback = raw;
+      raw = false;
+    }
+
     var obj = localStorage.getItem(this.ns + key);
 
     if (obj === null) {
@@ -111,8 +125,8 @@
     }
 
     try {
-      var value = JSON.parse(obj).value;
-      return callback(null, value);
+      var raw_data = JSON.parse(obj);
+      return callback(null, raw ? raw_data : raw_data.value);
     } catch (e) {
       return callback(new Error('Can\'t unserialise data: ' + obj));
     }
@@ -120,14 +134,28 @@
 
 
   DomStorage.prototype.clear = function (expiredOnly, callback) {
-/*
-    var re = new RegExp(this.ns+'.+');
-    for (var item in localStorage) {
-      if (item.match(re)) {
-        localStorage.removeItem(item.match(re)[0]);
+    var self = this;
+    var now = +new Date();
+
+    _each(localStorage, function(val, name) {
+      var key = name.split(self.ns)[ 1 ];
+
+      if (!key) { return; }
+
+      if (!expiredOnly) {
+        self.remove(key);
+        return;
       }
-    }
-*/
+
+      var raw;
+      self.get(key, true, function(err, data) {
+        raw = data; // can use this hack, because get is sync;
+      });
+      if (raw && (raw.expire > 0) && ((raw.expire - now) < 0)) {
+        self.remove(key);
+      }
+    });
+
     callback();
   };
 
@@ -210,7 +238,7 @@
       callback = expire;
       expire = undefined;
     }
-    callback = callback || function () {};
+    callback = callback || _nope;
     this.init(function(err) {
       if (err) { return callback(err); }
       self.db.set(key, value, expire, callback);
@@ -229,7 +257,7 @@
 
   Storage.prototype.remove = function (key, callback) {
     var self = this;
-    callback = callback || function () {};
+    callback = callback || _nope;
     this.db.init(function(err) {
       if (err) { return callback(err); }
       self.db.remove(key, callback);
@@ -243,7 +271,7 @@
       callback = expiredOnly;
       expiredOnly = false;
     }
-    callback = callback || function () {};
+    callback = callback || _nope;
 
     this.db.init(function(err) {
       if (err) { return callback(err); }
@@ -311,11 +339,13 @@
         obj.type = obj.type || result.type;
         obj.stamp = now;
 
-        if (obj.expire || self.expire ) {
-          obj.expire = now + ((obj.expire || self.expire) * 60 * 60 * 1000);
+        var delay = (obj.expire || self.expire) * 60*60;
+
+        if (obj.expire || self.expire) {
+          obj.expire = now + ((obj.expire || self.expire) * 60*60*1000);
         }
 
-        self.set(obj.key, obj, (obj.expire || self.expire)*60*60*1000, function() {
+        self.set(obj.key, obj, delay, function() {
           // Don't check error - have to return data anyway
           callback(null, obj);
         });

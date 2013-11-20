@@ -42,12 +42,73 @@ describe('localStorage tests', function () {
   it('key remove', function (done) {
     bag.remove(key, function (err) {
       assert.notOk(err);
-
       bag.get(key, function(err, data) {
         assert.ok(err);
         assert.notOk(data);
         done();
       });
+    });
+  });
+
+
+  it('persistance', function (done) {
+    bag.set(key, obj, function (err) {
+      assert.notOk(err);
+      bag.clear(true, function(err) {
+        assert.notOk(err);
+        bag.get(key, function (err, data) {
+          assert.notOk(err);
+          assert.deepEqual(obj, data);
+          done();
+        })
+      });
+    });
+  });
+
+
+  it('clear', function (done) {
+    bag.set(key, obj, function (err) {
+      assert.notOk(err);
+      bag.clear(function(err) {
+        assert.notOk(err);
+        bag.get(key, function (err, data) {
+          assert.ok(err);
+          assert.notOk(data);
+          done();
+        })
+      });
+    });
+  });
+
+  it('keep not expired', function (done) {
+    bag.set(key, obj, 1, function (err) {
+      assert.notOk(err);
+      setTimeout(function () {
+        bag.clear(true, function(err) {
+          assert.notOk(err);
+          bag.get(key, function (err, data) {
+            assert.notOk(err);
+            assert.deepEqual(obj, data);
+            done();
+          });
+        });
+      }, 50);
+    });
+  });
+
+  it('clear expired', function (done) {
+    bag.set(key, obj, 0.01, function (err) {
+      assert.notOk(err);
+      setTimeout(function () {
+        bag.clear(true, function(err) {
+          assert.notOk(err);
+          bag.get(key, function (err, data) {
+            assert.ok(err);
+            assert.notOk(data);
+            done();
+          });
+        });
+      }, 100);
     });
   });
 
