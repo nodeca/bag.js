@@ -154,17 +154,22 @@
     this.initStack = [];
 
     _each(storesList, function(name) {
+      // do storage names case insensitive
+      name = name.toLowerCase();
+
       if (!storeAdapters[name]) {
-        console.log('Wrong storage adapter name: ' + name, storesList);
-        return false;
+        throw new Error('Wrong storage adapter name: ' + name, storesList);
       }
+
       if (storeAdapters[name].prototype.exists()) {
         self.db = new storeAdapters[name](namespace);
-        return false; // terminate on success
+        return false; // terminate search on first success
       }
     });
 
     if (!self.db) {
+      // If no adaprets - don't make error for correct fallback.
+      // Just log that we continue work without storing results.
       console.log('None of requested storages available: ' + storesList);
     }
   };
