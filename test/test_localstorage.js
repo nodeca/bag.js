@@ -92,12 +92,12 @@ describe('localStorage tests', function () {
             done();
           });
         });
-      }, 50);
+      }, 10);
     });
   });
 
   it('clear expired', function (done) {
-    bag.set(key, obj, 0.01, function (err) {
+    bag.set(key, obj, 0.005, function (err) {
       assert.notOk(err);
       setTimeout(function () {
         bag.clear(true, function(err) {
@@ -108,7 +108,7 @@ describe('localStorage tests', function () {
             done();
           });
         });
-      }, 100);
+      }, 10);
     });
   });
 
