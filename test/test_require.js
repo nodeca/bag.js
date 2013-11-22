@@ -1,52 +1,51 @@
 
 describe('require tests', function () {
 
-  var bag = new window.Bag({
-    stores: [ 'localstorage' ]
-  });
+  var bag = new window.Bag();
 
-  var file_js = { url: 'fixtures/require-test.js' };
-
-  before(function() {
+  before(function(done) {
     bag.clear(false, function(err) {
       assert.notOk(err);
-      //done();
+      done();
     });
   });
 
-  it('require plain text', function (done) {
-    var file_txt = { url: 'fixtures/require-test.txt' };
-    bag.require(file_txt, function (err, data) {
+
+  it('require cached fail', function (done) {
+    var file_js = { url: 'fixtures/require-text.txt', cached: true };
+    bag.require(file_js, function (err, data) {
+      assert.notOk(data);
+      done();
+    });
+  });
+
+
+  it('require text', function (done) {
+    bag.require('fixtures/require-text.txt', function (err, data) {
       assert.notOk(err);
+      assert.strictEqual(data, 'lorem ipsum');
       done();
      });
   });
 
-  it('js inject', function (done) {
-    bag.require(file_js, function (err, data) {
+
+  it('require cached ok', function (done) {
+    var file_txt = { url: 'fixtures/require-text.txt', cached: true };
+    bag.require(file_txt, function (err, data) {
       assert.notOk(err);
-      assert.strictEqual(window.require_test1, 'test1');
+      assert.strictEqual(data, 'lorem ipsum');
+      done();
+     });
+  });
+
+
+  it('inject JS', function (done) {
+    bag.require('fixtures/require-jsvar-test1.js', function (err, data) {
+      assert.notOk(err);
+      assert.strictEqual(window.test1, 'test1');
       done();
     });
   });
 
-  it('require cached', function (done) {
-    var file_js = { url: 'fixtures/require-test.js', cached: true };
-    bag.require(file_js, function (err, data) {
-      assert.notOk(data);
-      bag.require(file_js, function (err, data) {
-        assert.notOk(data);
-      });
-      done();
-    });
-  });
-
-  it('require cached fail', function (done) {
-    var file_js = { url: 'wrong-file-name.js', cached: true };
-    bag.require(file_js, function (err, data) {
-      assert.notOk(data);
-      done();
-    });
-  });
 
 });

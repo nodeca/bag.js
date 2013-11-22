@@ -8,9 +8,9 @@
 
   function _nope() { return; }
 
-  /*var _isString = function isString(obj) {
+  var _isString = function isString(obj) {
     return Object.prototype.toString.call(obj) === '[object String]';
-  };*/
+  };
 
   var _isArray = Array.isArray || function isArray(obj) {
     return Object.prototype.toString.call(obj) === '[object Array]';
@@ -18,6 +18,13 @@
 
   var _isFunction = function isFunction(obj) {
     return Object.prototype.toString.call(obj) === '[object Function]';
+  };
+
+  var _default = function (obj, src) {
+    // extend obj with src properties if not exists;
+    _each(src, function(val, key) {
+      if (!obj[key]) { obj[key] = src[key]; }
+    });
   };
 
 
@@ -294,7 +301,7 @@
     this.expire       = options.expire || 30*24;  // 30 days
     this.isValidItem  = options.isValidItem || null;
     
-    this.stores = _isArray(options.stores) ? options.stores : ['indexeddb','websql','localstorage'];
+    this.stores = _isArray(options.stores) ? options.stores : [/*'indexeddb','websql',*/'localstorage'];
 
     var storage = null;
 
@@ -328,25 +335,33 @@
       xhr.send();
     }
 
+    function createCacheObj(obj, response) {
+      var cacheObj = {};
+
+      _each([ 'url', 'key', 'unique' ], function (key) {
+        if (obj[key]) { cacheObj[key] = obj[key]; }
+      });
+
+      var now = +new Date();
+      cacheObj.data = response.content;
+      cacheObj.originalType = response.type;
+      cacheObj.type = obj.type || response.type;
+      cacheObj.stamp = now;
+
+      return cacheObj;
+    }
 
     function saveUrl(obj, callback) {
       getUrl(obj.url, function(err, result) {
         if (err) { return callback(err); }
-        // wrap store data
-        var now = +new Date();
-        obj.data = result.content;
-        obj.originalType = result.type;
-        obj.type = obj.type || result.type;
-        obj.stamp = now;
 
-        var delay = (obj.expire || self.expire) * 60*60;
+        var delay = (obj.expire || self.expire) * 60*60; // in seconds
 
-        if (obj.expire || self.expire) {
-          obj.expire = now + ((obj.expire || self.expire) * 60*60*1000);
-        }
+        var cached = createCacheObj(obj, result);
 
-        self.set(obj.key, obj, delay, function() {
+        self.set(obj.key, cached, delay, function() {
           // Don't check error - have to return data anyway
+          _default(obj, cached);
           callback(null, obj);
         });
       });
@@ -367,6 +382,8 @@
       obj.key = (obj.key || obj.url);
 
       self.get(obj.key, function(err_cache, cached) {
+
+        // Check error only on forced fetch from cache
         if (err_cache && obj.cached) { return callback(err_cache); }
 
         // don't check errors here - if can't get object from store,
@@ -376,8 +393,9 @@
 
         // If don't have to load new date - return one from cache
         if (!obj.live && !shouldFetch) {
-          cached.type = obj.type || cached.originalType;
-          callback(null, cached);
+          obj.type = obj.type || cached.originalType;
+          _default(obj, cached);
+          callback(null, obj);
           return;
         }
 
@@ -390,9 +408,15 @@
 
         saveUrl(obj, function(err_load) {
           if (err_cache && err_load) { return callback(err_load); }
-          if (err_load) { return callback(null, cached); }
 
-          return callback(null, obj);
+          if (err_load) {
+            obj.type = obj.type || cached.originalType;
+            _default(obj, cached);
+            callback(null, obj);
+            return;
+          }
+
+          callback(null, obj);
         });
       });
     }
@@ -403,11 +427,11 @@
         var script = document.createElement('script');
 
         // add script name for dev tools
-        obj.data += '\n//@ sourceURL=' + obj.url;
+        var txt = obj.data + '\n//@ sourceURL=' + obj.url;
 
         // Have to use .text, since we support IE8,
         // which won't allow appending to a script
-        script.text = obj.data;
+        script.text = txt;
         head.appendChild(script);
         return;
       },
@@ -416,12 +440,12 @@
         var style = document.createElement('style');
 
         // add style name for dev tools
-        obj.data += '\n/*# sourceURL=' + obj.url + '<url> */';
+        var txt = obj.data + '\n/*# sourceURL=' + obj.url + '<url> */';
 
         if (style.styleSheet) {
-          style.styleSheet.cssText = obj.data; // IE method
+          style.styleSheet.cssText = txt; // IE method
         } else {
-          style.appendChild(document.createTextNode(obj.data)); // others
+          style.appendChild(document.createTextNode(txt)); // others
         }
 
         head.appendChild(style);
@@ -444,6 +468,11 @@
     this.require = function(resourses, callback) {
       var res = _isArray(resourses) ? resourses : [resourses];
 
+      // convert string urls to structures
+      _each(res, function(r, i) {
+        if (_isString(r)) { res[i] = { url: r }; }
+      });
+
       if (!storage) { storage = new Storage(self.prefix, self.stores); }
 
       _asyncEach(res, fetch, function(err) {
@@ -455,7 +484,12 @@
           }
         });
 
-        callback(null, resourses);
+        // return content only, if one need fuul info -
+        // chaeck input object, that will be extended.
+        var replies = [];
+        _each(res, function(r) { replies.push(r.data); });
+
+        callback(null, _isArray(resourses) ? replies : replies[0]);
       });
     };
 

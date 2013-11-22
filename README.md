@@ -160,6 +160,7 @@ resource info:
 - `unique` - a token stored with the cached item. If you request the same item
   again with a different token the script will be fetched and cached again.
 - `live` - force cache bypass, for development needs.
+- `cached` - force request from cache only.
 
 callback params:
 
