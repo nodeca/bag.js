@@ -1,4 +1,4 @@
-PATH        := ./node_modules/.bin:${PATH}
+#PATH        := ./node_modules/.bin:${PATH}
 
 NPM_PACKAGE := $(shell node -e 'process.stdout.write(require("./package.json").name)')
 NPM_VERSION := $(shell node -e 'process.stdout.write(require("./package.json").version)')
@@ -8,7 +8,7 @@ TMP_PATH    := /tmp/${NPM_PACKAGE}-$(shell date +%s)
 REMOTE_NAME ?= origin
 REMOTE_REPO ?= $(shell git config --get remote.${REMOTE_NAME}.url)
 
-CURR_HEAD   := $(firstword $(shell git show-ref --hash HEAD | cut --bytes=-6) master)
+CURR_HEAD   := $(firstword $(shell git show-ref --hash HEAD | sed 's/^\(.\{6\}\).*$$/\1/') master)
 GITHUB_PROJ := fontello/${NPM_PACKAGE}
 
 
@@ -24,10 +24,10 @@ lint:
 		echo "  $ make dev-deps" >&2 ; \
 		exit 128 ; \
 		fi
-	jshint . --show-non-errors
+	./node_modules/.bin/jshint . --show-non-errors
 
 test: lint
-	mocha-browser ./test/test.html --server
+	./node_modules/.bin/mocha-browser ./test/test.html --server
 
 
 
