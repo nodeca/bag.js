@@ -12,7 +12,7 @@ describe('require tests', function () {
 
 
   it('require cached fail', function (done) {
-    var file_js = { url: 'fixtures/require-text.txt', cached: true };
+    var file_js = { url: 'fixtures/require_text.txt', cached: true };
     bag.require(file_js, function (err, data) {
       assert.notOk(data);
       done();
@@ -21,7 +21,7 @@ describe('require tests', function () {
 
 
   it('require text', function (done) {
-    bag.require('fixtures/require-text.txt', function (err, data) {
+    bag.require('fixtures/require_text.txt', function (err, data) {
       assert.notOk(err);
       assert.strictEqual(data, 'lorem ipsum');
       done();
@@ -30,7 +30,7 @@ describe('require tests', function () {
 
 
   it('require cached ok', function (done) {
-    var file_txt = { url: 'fixtures/require-text.txt', cached: true };
+    var file_txt = { url: 'fixtures/require_text.txt', cached: true };
     bag.require(file_txt, function (err, data) {
       assert.notOk(err);
       assert.strictEqual(data, 'lorem ipsum');
@@ -40,9 +40,18 @@ describe('require tests', function () {
 
 
   it('inject JS', function (done) {
-    bag.require('fixtures/require-jsvar-test1.js', function (err, data) {
+    bag.require('fixtures/require_increment.js', function (err, data) {
       assert.notOk(err);
-      assert.strictEqual(window.test1, 'test1');
+      assert.strictEqual(window.test_inc, 1);
+      done();
+    });
+  });
+
+
+  it('inject JS from cache', function (done) {
+    bag.require({ url: 'fixtures/require_increment.js', cached: true }, function (err, data) {
+      assert.notOk(err);
+      assert.strictEqual(window.test_inc, 2);
       done();
     });
   });

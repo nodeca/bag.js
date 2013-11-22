@@ -1,0 +1,1 @@
+window.test_inc = window.test_inc ? window.test_inc+1 : 1;
