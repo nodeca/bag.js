@@ -101,6 +101,7 @@
 
 
   DomStorage.prototype.set = function (key, value, expire, callback) {
+    var self = this;
     var obj = {};
 
     if (expire) {
@@ -109,10 +110,23 @@
     obj.value = value;
 
     try {
-      localStorage.setItem(this.ns + key, JSON.stringify(obj));
+      localStorage.setItem(self.ns + key, JSON.stringify(obj));
       return callback();
     } catch (e) {
-      // FIXME: process possible errors & try cleanup + second attempt
+      // On quota error try to reset storage & try again.
+      // Just remove all keys, without conditions, no optimizations needed.
+      if ( e.name.toUpperCase().indexOf('QUOTA') >= 0 ) {
+        try {
+          _each(localStorage, function(val, name) {
+            var key = name.split(self.ns)[ 1 ];
+            if (key) { self.remove(key); }
+          });
+          localStorage.setItem(self.ns + key, JSON.stringify(obj));
+          return callback();
+        } catch (e) {
+          return callback(e);
+        }
+      }
       return callback(e);
     }
   };
@@ -485,7 +499,7 @@
         });
 
         // return content only, if one need fuul info -
-        // chaeck input object, that will be extended.
+        // check input object, that will be extended.
         var replies = [];
         _each(res, function(r) { replies.push(r.data); });
 
