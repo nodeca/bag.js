@@ -367,6 +367,8 @@
       obj.key = (obj.key || obj.url);
 
       self.get(obj.key, function(err_cache, cached) {
+        if (err_cache && obj.cached) { return callback(err_cache); }
+
         // don't check errors here - if can't get object from store,
         // then just load it from web.
         obj.execute = (obj.execute !== false);
@@ -442,7 +444,7 @@
     this.require = function(resourses, callback) {
       var res = _isArray(resourses) ? resourses : [resourses];
 
-      if (!storage) { storage = new Storage(self.namespace, self.stores); }
+      if (!storage) { storage = new Storage(self.prefix, self.stores); }
 
       _asyncEach(res, fetch, function(err) {
         if (err) { return callback(err); }
