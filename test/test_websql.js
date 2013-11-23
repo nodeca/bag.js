@@ -71,8 +71,8 @@ describe('WebSQL tests', function () {
       bag.clear(function(err) {
         if (err) { return done(err); }
         bag.get(key, function (err, data) {
-           assert.ok(err)
-           done();
+          assert.ok(err)
+          done();
         })
       });
     });

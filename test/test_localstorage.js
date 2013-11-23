@@ -12,15 +12,14 @@ describe('localStorage tests', function () {
 
   it('key set', function (done) {
     bag.set(key, obj, function (err) {
-      assert.notOk(err);
-      done();
+      return done(err);
     });
   });
 
 
   it('key get', function (done) {
     bag.get(key, function (err, data) {
-      assert.notOk(err);
+      if (err) { return done(err); }
       assert.deepEqual(obj, data);
       done();
     });
@@ -29,9 +28,9 @@ describe('localStorage tests', function () {
 
   it('key update', function (done) {
     bag.set(key, obj2, function (err) {
-      assert.notOk(err);
+      if (err) { return done(err); }
       bag.get(key, function (err, data) {
-        assert.notOk(err);
+        if (err) { return done(err); }
         assert.deepEqual(obj2, data);
         done();
       });
@@ -41,7 +40,7 @@ describe('localStorage tests', function () {
 
   it('key remove', function (done) {
     bag.remove(key, function (err) {
-      assert.notOk(err);
+      if (err) { return done(err); }
       bag.get(key, function(err, data) {
         assert.ok(err);
         assert.notOk(data);
@@ -53,11 +52,11 @@ describe('localStorage tests', function () {
 
   it('persistance', function (done) {
     bag.set(key, obj, function (err) {
-      assert.notOk(err);
+      if (err) { return done(err); }
       bag.clear(true, function(err) {
-        assert.notOk(err);
+        if (err) { return done(err); }
         bag.get(key, function (err, data) {
-          assert.notOk(err);
+          if (err) { return done(err); }
           assert.deepEqual(obj, data);
           done();
         })
@@ -68,26 +67,26 @@ describe('localStorage tests', function () {
 
   it('clear', function (done) {
     bag.set(key, obj, function (err) {
-      assert.notOk(err);
+      if (err) { return done(err); }
       bag.clear(function(err) {
-        assert.notOk(err);
+        if (err) { return done(err); }
         bag.get(key, function (err, data) {
-          assert.ok(err);
-          assert.notOk(data);
+          assert.ok(err)
           done();
         })
       });
     });
   });
 
+
   it('keep not expired', function (done) {
     bag.set(key, obj, 1, function (err) {
-      assert.notOk(err);
+      if (err) { return done(err); }
       setTimeout(function () {
         bag.clear(true, function(err) {
-          assert.notOk(err);
+        if (err) { return done(err); }
           bag.get(key, function (err, data) {
-            assert.notOk(err);
+            if (err) { return done(err); }
             assert.deepEqual(obj, data);
             done();
           });
@@ -96,15 +95,15 @@ describe('localStorage tests', function () {
     });
   });
 
+
   it('clear expired', function (done) {
     bag.set(key, obj, 0.005, function (err) {
-      assert.notOk(err);
+      if (err) { return done(err); }
       setTimeout(function () {
         bag.clear(true, function(err) {
-          assert.notOk(err);
+        if (err) { return done(err); }
           bag.get(key, function (err, data) {
             assert.ok(err);
-            assert.notOk(data);
             done();
           });
         });
