@@ -1,4 +1,4 @@
-(function( window, document ) {
+(function(window, document) {
   'use strict';
 
   var head = document.head || document.getElementsByTagName('head')[0];
@@ -327,84 +327,101 @@
 
 
   Idb.prototype.remove = function (key, callback) {
-    var req = this.db
-                .transaction('kv', 'readwrite')
-                .objectStore('kv')
-                .delete(key);
+    var tx = this.db.transaction('kv', 'readwrite');
 
-    req.onsuccess = function () { callback(); };
-    req.onerror = function (e) { callback(new Error('Key remove error: ', e)); };
+    tx.oncomplete = function () { callback(); };
+    tx.onerror = function (e) { callback(new Error('Key remove error: ', e)); };
+    tx.onabort = function (e) { callback(new Error('Key remove error: ', e)); };
+
+    var req = tx.objectStore('kv').delete(key);
+
+    req.onerror = function () { tx.abort(); };
   };
 
 
   Idb.prototype.set = function (key, value, expire, callback) {
-    var req = this.db
-                .transaction('kv', 'readwrite')
-                .objectStore('kv')
-                .put({ key: key, value: value, expire: expire });
+    var tx = this.db.transaction('kv', 'readwrite');
 
-    req.onsuccess = function () { callback(); };
-    req.onerror = function (e) { callback(new Error('Key set error: ', e)); };
+    tx.oncomplete = function () { callback(); };
+    tx.onerror = function (e) { callback(new Error('Key set error: ', e)); };
+    tx.onabort = function (e) { callback(new Error('Key set error: ', e)); };
+
+    var req = tx.objectStore('kv').put({ key: key, value: value, expire: expire });
+
+    req.onerror = function () { tx.abort(); };
   };
 
 
   Idb.prototype.get = function (key, callback) {
-    var req = this.db.transaction('kv').objectStore('kv').get(key);
+    var err, result;
+    var tx = this.db.transaction('kv');
+
+    tx.oncomplete = function () { callback(err, result); };
+    tx.onerror = function (e) { callback(new Error('Key get error: ', e)); };
+    tx.onabort = function (e) { callback(new Error('Key get error: ', e)); };
+
+    var req = tx.objectStore('kv').get(key);
 
     req.onsuccess = function(e) {
       if (e.target.result) {
-        callback(null, e.target.result.value);
+        result = e.target.result.value;
       } else {
-        callback(new Error('key not found: ' + key));
+        err = new Error('key not found: ' + key);
       }
     };
-    req.onerror = function (e) { callback(new Error('Key get error: ', e)); };
+    req.onerror = function () { tx.abort(); };
   };
 
 
   Idb.prototype.clear = function (expiredOnly, callback) {
     var keyrange = window.IDBKeyRange; /* ||
                    window.webkitIDBKeyRange || window.msIDBKeyRange;*/
-    var self = this, keys = [], req, tx;
+    var self = this, keys = [], tx, tx_read;
     
     if (expiredOnly) {
-      req = this.db.transaction('kv').objectStore('kv')
-              .index('expire').openCursor(keyrange.bound(1, +new Date()));
+      tx_read = this.db.transaction('kv');
 
-      req.onsuccess = function (e) {
+      tx_read.onerror = function (e) { callback(new Error('Remove expired (read) error: ', e)); };
+      tx_read.onabort = function (e) { callback(new Error('Remove expired (read) error: ', e)); };
+
+      var cursor = tx_read.objectStore('kv').index('expire').openCursor(keyrange.bound(1, +new Date()));
+
+      cursor.onsuccess = function (e) {
         var cursor = e.target.result;
-
         if (cursor) {
           keys.push(cursor.primaryKey);
           cursor.continue();
-        } else {
-          // nothing to clear - exit
-          if (!keys.length) { return callback(); }
-
-          // Create transaction to remove keys
-          tx = self.db.transaction('kv', 'readwrite');
-
-          var store = tx.objectStore('kv');
-          _each(keys, function(key) {
-            store.delete(key);
-          });
-
-          tx.oncomplete = function () { callback(); };
-          tx.onerror = function (e) { callback(new Error('Remove expired error: ', e)); };
         }
       };
-      // no data
-      req.onerror = function (e) {
-        callback(new Error('Clear expired error: ', e));
+
+      tx_read.oncomplete = function () {
+        // nothing to clear - complete immediately
+        if (!keys.length) { return callback(); }
+
+        // create transaction to remove keys
+        tx = self.db.transaction('kv', 'readwrite');
+
+        var store = tx.objectStore('kv');
+        _each(keys, function(key) {
+          store.delete(key);
+        });
+
+        tx.oncomplete = function () { callback(); };
+        tx.onerror = function (e) { callback(new Error('Remove expired (clear) error: ', e)); };
       };
 
     } else {
       // Just clear everything
-      req = this.db.transaction('kv', 'readwrite').objectStore('kv').clear();
-      req.onsuccess = function () { callback(); };
-      req.onerror = function (e) { callback(new Error('Clear error: ', e)); };
+      tx = this.db.transaction('kv', 'readwrite');
+
+      tx.oncomplete = function () { callback(); };
+      tx.onerror = function (e) { callback(new Error('Clear error: ', e)); };
+      tx.onabort = function (e) { callback(new Error('Clear error: ', e)); };
+
+      var req = tx.objectStore('kv').clear();
+
+      req.onerror = function () { tx.abort(); };
     }
-    
   };
 
 
@@ -498,7 +515,7 @@
 
   Storage.prototype.get = function (key, callback) {
     var self = this;
-    this.db.init(function(err) {
+    this.init(function(err) {
       if (err) { return callback(err); }
       self.db.get(key, callback);
     });
@@ -508,7 +525,7 @@
   Storage.prototype.remove = function (key, callback) {
     var self = this;
     callback = callback || _nope;
-    this.db.init(function(err) {
+    this.init(function(err) {
       if (err) { return callback(err); }
       self.db.remove(key, callback);
     });
@@ -523,7 +540,7 @@
     }
     callback = callback || _nope;
 
-    this.db.init(function(err) {
+    this.init(function(err) {
       if (err) { return callback(err); }
       self.db.clear(expiredOnly, callback);
     });
