@@ -102,12 +102,10 @@
 
   DomStorage.prototype.set = function (key, value, expire, callback) {
     var self = this;
-    var obj = {};
-
-    if (expire) {
-      obj.expire = +(new Date()) + (expire * 1000);
-    }
-    obj.value = value;
+    var obj = {
+      value: value,
+      expire: expire
+    };
 
     var err;
 
@@ -228,8 +226,6 @@
 
 
   WebSql.prototype.set = function (key, value, expire, callback) {
-    expire = expire ? +(new Date()) + (expire * 1000) : 0;
-
     this.db.transaction(function (tx) {
       tx.executeSql(
         'INSERT OR REPLACE INTO kv (key, value, expire) VALUES (?, ?, ?)',
@@ -368,6 +364,8 @@
       expire = undefined;
     }
     callback = callback || _nope;
+    expire = expire ? +(new Date()) + (expire * 1000) : 0;
+
     this.init(function(err) {
       if (err) { return callback(err); }
       self.db.set(key, value, expire, callback);
