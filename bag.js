@@ -109,26 +109,29 @@
     }
     obj.value = value;
 
+    var err;
+
     try {
       localStorage.setItem(self.ns + key, JSON.stringify(obj));
-      return callback();
     } catch (e) {
       // On quota error try to reset storage & try again.
       // Just remove all keys, without conditions, no optimizations needed.
-      if ( e.name.toUpperCase().indexOf('QUOTA') >= 0 ) {
+      if (e.name.toUpperCase().indexOf('QUOTA') >= 0) {
         try {
           _each(localStorage, function(val, name) {
             var key = name.split(self.ns)[ 1 ];
             if (key) { self.remove(key); }
           });
           localStorage.setItem(self.ns + key, JSON.stringify(obj));
-          return callback();
         } catch (e) {
-          return callback(e);
+          err = e;
         }
+      } else {
+        err = e;
       }
-      return callback(e);
     }
+
+    callback(err);
   };
 
 
@@ -145,12 +148,16 @@
       return;
     }
 
+    var err, data;
+
     try {
-      var raw_data = JSON.parse(obj);
-      return callback(null, raw ? raw_data : raw_data.value);
+      data = JSON.parse(obj);
+      data = raw ? data : data.value;
     } catch (e) {
-      return callback(new Error('Can\'t unserialise data: ' + obj));
+      err = new Error('Can\'t unserialise data: ' + obj);
     }
+
+    callback(err, data);
   };
 
 
@@ -181,12 +188,113 @@
   };
 
 
+  var WebSql = function (namespace) {
+    this.ns = namespace;
+  };
+
+
+  WebSql.prototype.exists = function() {
+    return (!!window.openDatabase);
+  };
+
+
+  WebSql.prototype.init = function (callback) {
+    var db = this.db = window.openDatabase(this.ns, '1.0', 'bag.js db', 2e5);
+
+    if (!db) { return callback('Can\'t open webdql database'); }
+
+    db.transaction(function (tx) {
+      tx.executeSql(
+        'CREATE TABLE IF NOT EXISTS kv (key TEXT PRIMARY KEY, value TEXT, expire INTEGER KEY)',
+        [],
+        function () { return callback(); },
+        function (tx, err) { return callback(err); }
+      );
+    });
+  };
+
+
+  WebSql.prototype.remove = function (key, callback) {
+    callback = callback || _nope;
+    this.db.transaction(function (tx) {
+      tx.executeSql(
+        'DELETE FROM kv WHERE key = ?',
+        [key],
+        function () { return callback(); },
+        function (tx, err) { return callback(err); }
+      );
+    });
+  };
+
+
+  WebSql.prototype.set = function (key, value, expire, callback) {
+    expire = expire ? +(new Date()) + (expire * 1000) : 0;
+
+    this.db.transaction(function (tx) {
+      tx.executeSql(
+        'INSERT OR REPLACE INTO kv (key, value, expire) VALUES (?, ?, ?)',
+        [key, JSON.stringify(value), expire],
+        function () { return callback(); },
+        function (tx, err) { return callback(err); }
+      );
+    });
+  };
+
+
+  WebSql.prototype.get = function (key, callback) {
+    this.db.readTransaction(function (tx) {
+      tx.executeSql(
+        'SELECT value FROM kv WHERE key = ?',
+        [key],
+        function (tx, result) {
+          if (result.rows.length === 0) {
+            return callback(new Error('key not found: ' + key));
+          }
+          var value = result.rows.item(0).value;
+          var err, data;
+          try {
+            data = JSON.parse(value);
+          } catch (e) {
+            err = new Error('Can\'t unserialise data: ' + value);
+          }
+          callback(err, data);
+        },
+        function (tx, err) { return callback(err); }
+      );
+    });
+  };
+
+
+  WebSql.prototype.clear = function (expiredOnly, callback) {
+
+    if (expiredOnly) {
+      this.db.transaction(function (tx) {
+        tx.executeSql(
+          'DELETE FROM kv WHERE expire > 0 AND expire < ?',
+          [+new Date()],
+          function () { return callback(); },
+          function (tx, err) { return callback(err); }
+        );
+      });
+    } else {
+      this.db.transaction(function (tx) {
+        tx.executeSql(
+          'DELETE FROM kv',
+          [],
+          function () { return callback(); },
+          function (tx, err) { return callback(err); }
+        );
+      });
+    }
+  };
+
+
   /////////////////////////////////////////////////////////////////////////////
   // key/value storage with expiration
 
   var storeAdapters = {
-    /*'indexeddb': IDB,
-    'websql': WebSql,*/
+    /*'indexeddb': IDB,*/
+    'websql': WebSql,
     'localstorage': DomStorage
   };
 
@@ -315,7 +423,7 @@
     this.expire       = options.expire || 30*24;  // 30 days
     this.isValidItem  = options.isValidItem || null;
     
-    this.stores = _isArray(options.stores) ? options.stores : [/*'indexeddb','websql',*/'localstorage'];
+    this.stores = _isArray(options.stores) ? options.stores : [/*'indexeddb',*/'websql', 'localstorage'];
 
     var storage = null;
 
