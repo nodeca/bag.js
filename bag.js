@@ -634,9 +634,9 @@
     };
 
 
-    this.clear = function (expired, callback) {
+    this.clear = function (expiredOnly, callback) {
       if (!storage) { storage = new Storage(self.prefix, self.stores); }
-      storage.clear(expired, callback);
+      storage.clear(expiredOnly, callback);
     };
 
 

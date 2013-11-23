@@ -9,6 +9,14 @@ describe('WebSQL tests', function () {
   var obj = { lorem: 'imsum', dolorem: 'casum' };
   var obj2 = { tratum: 'curem', lafem: 'pendum' };
 
+  before(function(done) {
+    bag.clear(done);
+  });
+
+  after(function(done) {
+    bag.clear(done);
+  });
+
 
   it('key set', function (done) {
     bag.set(key, obj, function (err) {

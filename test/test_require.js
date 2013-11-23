@@ -4,10 +4,11 @@ describe('require tests', function () {
   var bag = new window.Bag();
 
   before(function(done) {
-    bag.clear(false, function(err) {
-      assert.notOk(err);
-      done();
-    });
+    bag.clear(done);
+  });
+
+  after(function(done) {
+    bag.clear(done);
   });
 
 
