@@ -285,11 +285,134 @@
   };
 
 
+  var Idb = function (namespace) {
+    this.ns = namespace;
+  };
+
+
+  Idb.prototype.exists = function() {
+    return !!(window.indexedDB ||
+              window.webkitIndexedDB ||
+              window.mozIndexedDB ||
+              window.msIndexedDB);
+  };
+
+
+  Idb.prototype.init = function (callback) {
+    var self = this;
+    var idb = this.idb = window.indexedDB; /* || window.webkitIndexedDB ||
+                         window.mozIndexedDB || window.msIndexedDB;*/
+
+    var req = idb.open(self.ns, 2 /*version*/);
+
+    req.onsuccess = function(e) {
+      self.db = e.target.result;
+      callback();
+    };
+    req.onblocked = function(e) {
+      callback(new Error('IndexedDB blocked. ' + e.target.errorCode));
+    };
+    req.onerror = function(e) {
+      callback(new Error('IndexedDB opening error. ' + e.target.errorCode));
+    };
+    req.onupgradeneeded = function(e) {
+      self.db = e.target.result;
+      if (self.db.objectStoreNames.contains('kv')) {
+        self.db.deleteObjectStore('kv');
+      }
+      var store = self.db.createObjectStore('kv', { keyPath: 'key' });
+      store.createIndex("expire", "expire", { unique: false });
+    };
+  };
+
+
+  Idb.prototype.remove = function (key, callback) {
+    var req = this.db
+                .transaction('kv', 'readwrite')
+                .objectStore('kv')
+                .delete(key);
+
+    req.onsuccess = function () { callback(); };
+    req.onerror = function (e) { callback(new Error('Key remove error: ', e)); };
+  };
+
+
+  Idb.prototype.set = function (key, value, expire, callback) {
+    var req = this.db
+                .transaction('kv', 'readwrite')
+                .objectStore('kv')
+                .put({ key: key, value: value, expire: expire });
+
+    req.onsuccess = function () { callback(); };
+    req.onerror = function (e) { callback(new Error('Key set error: ', e)); };
+  };
+
+
+  Idb.prototype.get = function (key, callback) {
+    var req = this.db.transaction('kv').objectStore('kv').get(key);
+
+    req.onsuccess = function(e) {
+      if (e.target.result) {
+        callback(null, e.target.result.value);
+      } else {
+        callback(new Error('key not found: ' + key));
+      }
+    };
+    req.onerror = function (e) { callback(new Error('Key get error: ', e)); };
+  };
+
+
+  Idb.prototype.clear = function (expiredOnly, callback) {
+    var keyrange = window.IDBKeyRange; /* ||
+                   window.webkitIDBKeyRange || window.msIDBKeyRange;*/
+    var self = this, keys = [], req, tx;
+    
+    if (expiredOnly) {
+      req = this.db.transaction('kv').objectStore('kv')
+              .index('expire').openCursor(keyrange.bound(1, +new Date()));
+
+      req.onsuccess = function (e) {
+        var cursor = e.target.result;
+
+        if (cursor) {
+          keys.push(cursor.primaryKey);
+          cursor.continue();
+        } else {
+          // nothing to clear - exit
+          if (!keys.length) { return callback(); }
+
+          // Create transaction to remove keys
+          tx = self.db.transaction('kv', 'readwrite');
+
+          var store = tx.objectStore('kv');
+          _each(keys, function(key) {
+            store.delete(key);
+          });
+
+          tx.oncomplete = function () { callback(); };
+          tx.onerror = function (e) { callback(new Error('Remove expired error: ', e)); };
+        }
+      };
+      // no data
+      req.onerror = function (e) {
+        callback(new Error('Clear expired error: ', e));
+      };
+
+    } else {
+      // Just clear everything
+      req = this.db.transaction('kv', 'readwrite').objectStore('kv').clear();
+      req.onsuccess = function () { callback(); };
+      req.onerror = function (e) { callback(new Error('Clear error: ', e)); };
+    }
+    
+  };
+
+
   /////////////////////////////////////////////////////////////////////////////
   // key/value storage with expiration
 
   var storeAdapters = {
-    /*'indexeddb': IDB,*/
+    'indexeddb': Idb,
     'websql': WebSql,
     'localstorage': DomStorage
   };
@@ -421,7 +544,7 @@
     this.expire       = options.expire || 30*24;  // 30 days
     this.isValidItem  = options.isValidItem || null;
     
-    this.stores = _isArray(options.stores) ? options.stores : [/*'indexeddb',*/'websql', 'localstorage'];
+    this.stores = _isArray(options.stores) ? options.stores : ['indexeddb', 'websql', 'localstorage'];
 
     var storage = null;
 
