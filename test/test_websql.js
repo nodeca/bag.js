@@ -10,11 +10,11 @@ describe('WebSQL tests', function () {
   var obj2 = { tratum: 'curem', lafem: 'pendum' };
 
   before(function(done) {
-    bag.clear(done);
+    bag.clear(function () { done(); });
   });
 
   after(function(done) {
-    bag.clear(done);
+    bag.clear(function () { done(); });
   });
 
 
