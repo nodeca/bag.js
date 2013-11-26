@@ -58,4 +58,74 @@ describe('require tests', function () {
   });
 
 
+  it.skip('test the some `unique`', function (done) {
+    done();
+  });
+
+
+  it.skip('test different `unique`', function (done) {
+    done();
+  });
+
+
+  it.skip('require when cache not expired', function (done) {
+    done();
+  });
+
+
+  it.skip('require when cache expired', function (done) {
+    done();
+  });
+
+
+  it.skip('require not existing file', function (done) {
+    done();
+  });
+
+
+  it.skip('test external validator `isValidItem()`', function (done) {
+    done();
+  });
+
+
+  it.skip('test execution order', function (done) {
+    done();
+  });
+
+
+  it.skip('test CSS injection', function (done) {
+    done();
+  });
+
+  
+  it.skip('different handlers for different mime-types', function (done) {
+    done();
+  });
+
+
+  it.skip('multiple handler for one mime-type', function (done) {
+    done();
+  });
+
+
+  it.skip('removing mime-type handler', function (done) {
+    done();
+  });
+
+
+  it.skip('require() with live: true, we attempt to fetch from the network first', function (done) {
+    done();
+  });
+
+
+  it.skip('require() with live: true, we still store the result in the cache', function (done) {
+    done();
+  });
+
+
+  it.skip('require() chaining', function (done) {
+    done();
+  });
+
+
 });
