@@ -559,6 +559,7 @@
   // Bag class implementation
 
   function Bag(options) {
+    if (!(this instanceof Bag)) { return new Bag(options); }
 
     var self = this;
 

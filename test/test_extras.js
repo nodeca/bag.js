@@ -19,4 +19,10 @@ describe('extra tests', function () {
   });
 
 
+  it('init without `new` keyword', function() {
+    assert.instanceOf(new window.Bag(), window.Bag);
+    assert.instanceOf(window.Bag(), window.Bag);
+  });
+
+
 });
