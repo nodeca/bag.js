@@ -620,7 +620,7 @@
     }
 
     function saveUrl(obj, callback) {
-      getUrl(obj.url, function(err, result) {
+      getUrl(obj.url_real, function(err, result) {
         if (err) { return callback(err); }
 
         var delay = (obj.expire || self.expire) * 60*60; // in seconds
@@ -640,6 +640,7 @@
       return !cached ||
         cached.expire - +new Date() < 0  ||
         obj.unique !== cached.unique ||
+        obj.url !== cached.url ||
         (self.isValidItem && !self.isValidItem(cached, obj));
     }
 
@@ -654,8 +655,7 @@
         // Check error only on forced fetch from cache
         if (err_cache && obj.cached) { return callback(err_cache); }
 
-        // don't check errors here - if can't get object from store,
-        // then just load it from web.
+        // if can't get object from store, then just load it from web.
         obj.execute = (obj.execute !== false);
         var shouldFetch = !!err_cache || isCacheValid(cached, obj);
 
@@ -667,11 +667,11 @@
           return;
         }
 
-        // start loading
-
+        // calculate loading url
+        obj.url_real = obj.url;
         if (obj.unique) {
           // set parameter to prevent browser cache
-          obj.url += ( ( obj.url.indexOf('?') > 0 ) ? '&' : '?' ) + 'bag-unique=' + obj.unique;
+          obj.url_real = obj.url( ( obj.url.indexOf('?') > 0 ) ? '&' : '?' ) + 'bag-unique=' + obj.unique;
         }
 
         saveUrl(obj, function(err_load) {
