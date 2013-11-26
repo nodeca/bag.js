@@ -42,9 +42,7 @@
         return obj.forEach(iterator);
       }
       for (var i = 0; i < obj.length; i++) {
-        if (iterator(obj[i], i, obj) === false) {
-          break;
-        }
+        iterator(obj[i], i, obj);
       }
     } else {
       for (var k in obj) {
@@ -449,6 +447,8 @@
   var Storage = function (namespace, storesList) {
     var self = this;
 
+    this.db = null;
+
     // States of db init singletone process
     // 'done' / 'progress' / 'failed' / undefined
     this.initState = undefined;
@@ -462,7 +462,7 @@
         throw new Error('Wrong storage adapter name: ' + name, storesList);
       }
 
-      if (storeAdapters[name].prototype.exists()) {
+      if (storeAdapters[name].prototype.exists() && !self.db) {
         self.db = new storeAdapters[name](namespace);
         return false; // terminate search on first success
       }

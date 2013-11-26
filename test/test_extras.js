@@ -2,15 +2,29 @@
 describe('extra tests', function () {
 
 
-  it.skip('use localstorage by priority', function (done) {
+  it('use localstorage by priority', function (done) {
     var b = new window.Bag({ stores: ['localstorage', 'websql'] });
-    done();
+    b.set('ls_test', 'ls_test', function (err) {
+      var b1 = new window.Bag({ stores: ['localstorage'] });
+      b1.get('ls_test', function (err, data) {
+        assert.notOk(err);
+        assert.strictEqual(data, 'ls_test');
+        b.clear(done);
+      });
+    });
   });
 
 
-  it.skip('use websql by priority', function (done) {
+  it('use websql by priority', function (done) {
     var b = new window.Bag({ stores: ['websql', 'localstorage'] });
-    done();
+    b.set('wsql_test', 'wsql_test', function (err) {
+      var b1 = new window.Bag({ stores: ['websql'] });
+      b1.get('wsql_test', function (err, data) {
+        assert.notOk(err);
+        assert.strictEqual(data, 'wsql_test');
+        b.clear(done);
+      });
+    });
   });
 
 
