@@ -723,8 +723,10 @@
 
 
     function execute(obj) {
-      if (obj.type && handlers[obj.type]) {
-        return handlers[obj.type](obj);
+      // cut off encoding if exists:
+      // application/javascript; charset=UTF-8
+      if (obj.type && handlers[obj.type.split(';')[0]]) {
+        return handlers[obj.type.split(';')[0]](obj);
       }
     }
 
