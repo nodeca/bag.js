@@ -297,10 +297,10 @@
 
 
   Idb.prototype.exists = function() {
-    return !!(window.indexedDB ||
+    return !!(window.indexedDB /*||
               window.webkitIndexedDB ||
               window.mozIndexedDB ||
-              window.msIndexedDB);
+              window.msIndexedDB*/);
   };
 
 
@@ -336,8 +336,7 @@
     var tx = this.db.transaction('kv', 'readwrite');
 
     tx.oncomplete = function () { callback(); };
-    tx.onerror = function (e) { callback(new Error('Key remove error: ', e)); };
-    tx.onabort = function (e) { callback(new Error('Key remove error: ', e)); };
+    tx.onerror = tx.onabort = function (e) { callback(new Error('Key remove error: ', e.target)); };
 
     var req = tx.objectStore('kv').delete(key);
 
@@ -349,8 +348,7 @@
     var tx = this.db.transaction('kv', 'readwrite');
 
     tx.oncomplete = function () { callback(); };
-    tx.onerror = function (e) { callback(new Error('Key set error: ', e)); };
-    tx.onabort = function (e) { callback(new Error('Key set error: ', e)); };
+    tx.onerror = tx.onabort = function (e) { callback(new Error('Key set error: ', e.target)); };
 
     var req = tx.objectStore('kv').put({ key: key, value: value, expire: expire });
 
@@ -363,8 +361,7 @@
     var tx = this.db.transaction('kv');
 
     tx.oncomplete = function () { callback(err, result); };
-    tx.onerror = function (e) { callback(new Error('Key get error: ', e)); };
-    tx.onabort = function (e) { callback(new Error('Key get error: ', e)); };
+    tx.onerror = tx.onabort = function (e) { callback(new Error('Key get error: ', e.target)); };
 
     var req = tx.objectStore('kv').get(key);
 
@@ -387,8 +384,7 @@
     if (expiredOnly) {
       tx_read = this.db.transaction('kv');
 
-      tx_read.onerror = function (e) { callback(new Error('Remove expired (read) error: ', e)); };
-      tx_read.onabort = function (e) { callback(new Error('Remove expired (read) error: ', e)); };
+      tx_read.onerror = function (e) { callback(new Error('Remove expired (read) error: ', e.target)); };
 
       var cursor = tx_read.objectStore('kv').index('expire').openCursor(keyrange.bound(1, +new Date()));
 
@@ -413,7 +409,7 @@
         });
 
         tx.oncomplete = function () { callback(); };
-        tx.onerror = function (e) { callback(new Error('Remove expired (clear) error: ', e)); };
+        tx.onerror = function (e) { callback(new Error('Remove expired (clear) error: ', e.target)); };
       };
 
     } else {
@@ -421,8 +417,7 @@
       tx = this.db.transaction('kv', 'readwrite');
 
       tx.oncomplete = function () { callback(); };
-      tx.onerror = function (e) { callback(new Error('Clear error: ', e)); };
-      tx.onabort = function (e) { callback(new Error('Clear error: ', e)); };
+      tx.onerror = tx.onabort = function (e) { callback(new Error('Clear error: ', e.target)); };
 
       var req = tx.objectStore('kv').clear();
 
