@@ -1,5 +1,5 @@
 
-describe('storages tests', function () {
+describe('extra tests', function () {
 
 
   it.skip('use localstorage by priority', function (done) {

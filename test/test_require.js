@@ -58,12 +58,12 @@ describe('require tests', function () {
   });
 
 
-  it.skip('test the some `unique`', function (done) {
+  it.skip('use the same `unique`', function (done) {
     done();
   });
 
 
-  it.skip('test different `unique`', function (done) {
+  it.skip('use different `unique`', function (done) {
     done();
   });
 
@@ -83,7 +83,7 @@ describe('require tests', function () {
   });
 
 
-  it.skip('test external validator `isValidItem()`', function (done) {
+  it.skip('use external validator `isValidItem()`', function (done) {
     done();
   });
 
@@ -103,22 +103,22 @@ describe('require tests', function () {
   });
 
 
-  it.skip('multiple handler for one mime-type', function (done) {
+  it.skip('multiple handler for the same mime-type', function (done) {
     done();
   });
 
 
-  it.skip('removing mime-type handler', function (done) {
+  it.skip('remove mime-type handler', function (done) {
     done();
   });
 
 
-  it.skip('require() with live: true, we attempt to fetch from the network first', function (done) {
+  it.skip('require() with `live: true`, we attempt to fetch from the network first', function (done) {
     done();
   });
 
 
-  it.skip('require() with live: true, we still store the result in the cache', function (done) {
+  it.skip('require() with `live: true`, we still store the result in the cache', function (done) {
     done();
   });
 
