@@ -574,6 +574,10 @@
 
     var storage = null;
 
+    this._createStorage = function () {
+      if (!storage) { storage = new Storage(self.prefix, self.stores); }
+    };
+
     function getUrl(url, callback) {
       var xhr = new XMLHttpRequest();
       xhr.open( 'GET', url );
@@ -742,7 +746,7 @@
         if (_isString(r)) { res[i] = { url: r }; }
       });
 
-      if (!storage) { storage = new Storage(self.prefix, self.stores); }
+      this._createStorage();
 
       _asyncEach(res, fetch, function(err) {
         if (err) { return callback(err); }
@@ -764,25 +768,25 @@
 
 
     this.remove = function (key, callback) {
-      if (!storage) { storage = new Storage(self.prefix, self.stores); }
+      this._createStorage();
       storage.remove(key, callback);
     };
 
 
     this.get = function (key, callback) {
-      if (!storage) { storage = new Storage(self.prefix, self.stores); }
+      this._createStorage();
       storage.get(key, callback);
     };
 
 
     this.set = function (key, data, expire, callback) {
-      if (!storage) { storage = new Storage(self.prefix, self.stores); }
+      this._createStorage();
       storage.set(key, data, expire, callback);
     };
 
 
     this.clear = function (expiredOnly, callback) {
-      if (!storage) { storage = new Storage(self.prefix, self.stores); }
+      this._createStorage();
       storage.clear(expiredOnly, callback);
     };
 
