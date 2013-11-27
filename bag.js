@@ -671,7 +671,7 @@
         obj.url_real = obj.url;
         if (obj.unique) {
           // set parameter to prevent browser cache
-          obj.url_real = obj.url( ( obj.url.indexOf('?') > 0 ) ? '&' : '?' ) + 'bag-unique=' + obj.unique;
+          obj.url_real = obj.url + ((obj.url.indexOf('?') > 0) ? '&' : '?') + 'bag-unique=' + obj.unique;
         }
 
         saveUrl(obj, function(err_load) {
