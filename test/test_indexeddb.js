@@ -1,3 +1,5 @@
+/*global describe, it, assert, before, after*/
+'use strict';
 
 describe('IndexedDB tests', function () {
 
@@ -75,7 +77,7 @@ describe('IndexedDB tests', function () {
           if (err) { return done(err); }
           assert.deepEqual(obj, data);
           done();
-        })
+        });
       });
     });
   });
@@ -86,10 +88,10 @@ describe('IndexedDB tests', function () {
       if (err) { return done(err); }
       bag.clear(function(err) {
         if (err) { return done(err); }
-        bag.get(key, function (err, data) {
-          assert.ok(err)
+        bag.get(key, function (err) {
+          assert.ok(err);
           done();
-        })
+        });
       });
     });
   });
@@ -100,7 +102,7 @@ describe('IndexedDB tests', function () {
       if (err) { return done(err); }
       setTimeout(function () {
         bag.clear(true, function(err) {
-        if (err) { return done(err); }
+          if (err) { return done(err); }
           bag.get(key, function (err, data) {
             if (err) { return done(err); }
             assert.deepEqual(obj, data);
@@ -117,8 +119,8 @@ describe('IndexedDB tests', function () {
       if (err) { return done(err); }
       setTimeout(function () {
         bag.clear(true, function(err) {
-        if (err) { return done(err); }
-          bag.get(key, function (err, data) {
+          if (err) { return done(err); }
+          bag.get(key, function (err) {
             assert.ok(err);
             done();
           });

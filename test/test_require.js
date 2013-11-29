@@ -1,3 +1,5 @@
+/*global describe, it, assert, before, after*/
+'use strict';
 
 describe('require tests', function () {
 
@@ -26,7 +28,7 @@ describe('require tests', function () {
       assert.notOk(err);
       assert.strictEqual(data, 'lorem ipsum');
       done();
-     });
+    });
   });
 
 
@@ -36,12 +38,12 @@ describe('require tests', function () {
       assert.notOk(err);
       assert.strictEqual(data, 'lorem ipsum');
       done();
-     });
+    });
   });
 
 
   it('inject JS', function (done) {
-    bag.require('fixtures/require_increment.js', function (err, data) {
+    bag.require('fixtures/require_increment.js', function (err) {
       assert.notOk(err);
       assert.strictEqual(window.test_inc, 1);
       done();
@@ -50,7 +52,7 @@ describe('require tests', function () {
 
 
   it('inject JS from cache', function (done) {
-    bag.require({ url: 'fixtures/require_increment.js', cached: true }, function (err, data) {
+    bag.require({ url: 'fixtures/require_increment.js', cached: true }, function (err) {
       assert.notOk(err);
       assert.strictEqual(window.test_inc, 2);
       done();

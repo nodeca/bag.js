@@ -1,3 +1,5 @@
+/*global describe, it, assert, before, after*/
+'use strict';
 
 describe('WebSQL tests', function () {
 
@@ -67,7 +69,7 @@ describe('WebSQL tests', function () {
           if (err) { return done(err); }
           assert.deepEqual(obj, data);
           done();
-        })
+        });
       });
     });
   });
@@ -78,10 +80,10 @@ describe('WebSQL tests', function () {
       if (err) { return done(err); }
       bag.clear(function(err) {
         if (err) { return done(err); }
-        bag.get(key, function (err, data) {
-          assert.ok(err)
+        bag.get(key, function (err) {
+          assert.ok(err);
           done();
-        })
+        });
       });
     });
   });
@@ -92,7 +94,7 @@ describe('WebSQL tests', function () {
       if (err) { return done(err); }
       setTimeout(function () {
         bag.clear(true, function(err) {
-        if (err) { return done(err); }
+          if (err) { return done(err); }
           bag.get(key, function (err, data) {
             if (err) { return done(err); }
             assert.deepEqual(obj, data);
@@ -109,8 +111,8 @@ describe('WebSQL tests', function () {
       if (err) { return done(err); }
       setTimeout(function () {
         bag.clear(true, function(err) {
-        if (err) { return done(err); }
-          bag.get(key, function (err, data) {
+          if (err) { return done(err); }
+          bag.get(key, function (err) {
             assert.ok(err);
             done();
           });
