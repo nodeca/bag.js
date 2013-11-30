@@ -569,6 +569,9 @@
 
     var storage = null;
 
+    this._queue = [];
+    this._chained = false;
+
     this._createStorage = function () {
       if (!storage) { storage = new Storage(self.prefix, self.stores); }
     };
@@ -736,20 +739,43 @@
     // Public methods
     //
 
-    this.require = function(resourses, callback) {
-      var res = _isArray(resourses) ? resourses : [resourses];
+    this.require = function(resources, callback) {
+      var queue = self._queue;
 
-      // convert string urls to structures
-      _each(res, function(r, i) {
-        if (_isString(r)) { res[i] = { url: r }; }
-      });
+      if (_isFunction(resources)) {
+        callback = resources;
+        resources = undefined;
+      }
 
-      this._createStorage();
+      if (resources) {
+        var res = _isArray(resources) ? resources : [resources];
 
-      _asyncEach(res, fetch, function(err) {
-        if (err) { return callback(err); }
+        // convert string urls to structures
+        // and push to queue
+        _each(res, function(r, i) {
+          if (_isString(r)) { res[i] = { url: r }; }
+          queue.push(res[i]);
+        });
+      }
 
-        _each(res, function(obj) {
+      self._createStorage();
+
+      if (!callback) {
+        self._chained = true;
+        return self;
+      }
+
+      _asyncEach(queue, fetch, function(err) {
+        if (err) {
+          // cleanup
+          self._chained = false;
+          self._queue = [];
+
+          callback(err);
+          return;
+        }
+
+        _each(queue, function(obj) {
           if (obj.execute) {
             execute(obj);
           }
@@ -758,9 +784,15 @@
         // return content only, if one need fuul info -
         // check input object, that will be extended.
         var replies = [];
-        _each(res, function(r) { replies.push(r.data); });
+        _each(queue, function(r) { replies.push(r.data); });
 
-        callback(null, _isArray(resourses) ? replies : replies[0]);
+        var result = (_isArray(resources) || self._chained) ? replies : replies[0];
+
+        // cleanup
+        self._chained = false;
+        self._queue = [];
+
+        callback(null, result);
       });
     };
 
