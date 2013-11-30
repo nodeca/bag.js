@@ -150,18 +150,30 @@ describe('require tests', function () {
   });
 
   
-  it.skip('different handlers for different mime-types', function (done) {
-    done();
+  it('add/replace handler', function (done) {
+    var b = new window.Bag();
+    var handled = false;
+    b.addHandler('application/javascript', function () {
+      handled = true;
+    });
+
+    b.require('fixtures/require_const.js', function () {
+      assert.ok(handled);
+      done();
+    });
   });
 
 
-  it.skip('multiple handler for the same mime-type', function (done) {
-    done();
-  });
+  it('remove mime-type handler', function (done) {
+    var b = new window.Bag();
+    b.removeHandler('application/javascript');
+    window.test_const = 0;
 
-
-  it.skip('remove mime-type handler', function (done) {
-    done();
+    b.require('fixtures/require_const.js', function (err) {
+      assert.notOk(err);
+      assert.strictEqual(window.test_const, 0);
+      done();
+    });
   });
 
 
