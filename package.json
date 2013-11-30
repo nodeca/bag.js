@@ -1,20 +1,7 @@
 {
-  "name": "bag.js",
-  "version": "0.0.1",
-  "description": "JS/CSS loader with cachind in IndexedDB/Websql/localStorage + KV storage",
-
-  "keywords": [ "loader", "localstorage", "indexeddb", "websql", "caching", "asset" ],
-
-  "homepage": "https://github.com/nodeca/bag.js",
-  "bugs": "https://github.com/nodeca/bag.js/issues",
-  "license": "MIT",
-
-  "main": "lib/basket",
-
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/addyosmani/basket.js"
-  },
+  "name": "---",
+  "version": "0.0.0",
+  "private": true,
 
   "devDependencies": {
     "mocha-browser" : "~ 0.1.6",
