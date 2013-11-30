@@ -585,7 +585,8 @@
             });
             callback = _nope;
           } else {
-            callback(new Error(xhr.statusText));
+            callback(new Error('Can\'t open url ' + url +
+               (xhr.status ? xhr.statusText + ' (' + xhr.status + ')' : '')));
             callback = _nope;
           }
         }

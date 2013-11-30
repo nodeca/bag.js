@@ -30,7 +30,7 @@ describe('extra tests', function () {
   });
 
 
-  it.skip('reset localstorage when quota exeeded (2.5-5Mb)', function (done) {
+  it.skip('reset localstorage when quota exceeded (2.5-5Mb)', function (done) {
     done();
   });
 
