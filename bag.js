@@ -560,7 +560,7 @@
 
     options = options || {};
 
-    this.prefix       = options.namespace || 'bag';
+    this.prefix       = options.prefix || 'bag';
     this.timeout      = options.timeout || 20;    // 20 seconds
     this.expire       = options.expire || 30*24;  // 30 days
     this.isValidItem  = options.isValidItem || null;

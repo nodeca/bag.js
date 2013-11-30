@@ -32,11 +32,20 @@ describe('require tests', function () {
 
 
   it('require cached ok', function (done) {
-    bag.require('fixtures/require_text.txt', function () {
-      bag.require({ url: 'fixtures/require_text.txt', cached: true }, function (err, data) {
+    var url = 'fixtures/require_text.txt';
+    bag.require(url, function () {
+      // hack cache content
+      bag.get(url, function (err, val) {
         assert.notOk(err);
-        assert.strictEqual(data, 'lorem ipsum');
-        done();
+        val.data = 'tandrum aver';
+        bag.set(url, val, function () {
+          // require & make sure data is from cache
+          bag.require({ url: url, cached: true }, function (err, data) {
+            assert.notOk(err);
+            assert.strictEqual(data, 'tandrum aver');
+            done();
+          });
+        });
       });
     });
   });
