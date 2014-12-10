@@ -2,10 +2,13 @@
   "name": "---",
   "version": "0.0.0",
   "private": true,
-
+  "scripts": {
+    "test": "make test"
+  },
   "devDependencies": {
-    "mocha-browser" : "~ 0.1.6",
-    "phantomjs"     : "~ 1.9.2-3",
-    "jshint"        : "*"
+    "eslint": "0.10.1",
+    "eslint-plugin-nodeca": "~1.0.3",
+    "mocha-browser": "~ 0.1.6",
+    "phantomjs": "~ 1.9.7"
   }
 }

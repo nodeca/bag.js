@@ -4,6 +4,7 @@
 describe('IndexedDB tests', function () {
 
   if (!window.indexedDB) {
+    var console = window.console;
     console.log('------------------------------------------------');
     console.log('IndexedDB tests disabled - no support in engine.');
     console.log('------------------------------------------------');

@@ -19,12 +19,7 @@ help:
 
 
 lint:
-	if test ! `which jshint` ; then \
-		echo "You need 'jshint' installed in order to run lint." >&2 ; \
-		echo "  $ make dev-deps" >&2 ; \
-		exit 128 ; \
-		fi
-	./node_modules/.bin/jshint . --show-non-errors
+	./node_modules/.bin/eslint --reset ./
 
 test: lint
 	./node_modules/.bin/mocha-browser ./test/test.html --server

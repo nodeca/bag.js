@@ -10,31 +10,24 @@
   'use strict';
 
   var head = document.head || document.getElementsByTagName('head')[0];
+  var console = window.console;
 
   //////////////////////////////////////////////////////////////////////////////
   // helpers
 
   function _nope() { return; }
 
-  var _isString = function isString(obj) {
+  function _isString(obj) {
     return Object.prototype.toString.call(obj) === '[object String]';
-  };
+  }
 
   var _isArray = Array.isArray || function isArray(obj) {
     return Object.prototype.toString.call(obj) === '[object Array]';
   };
 
-  var _isFunction = function isFunction(obj) {
+  function _isFunction(obj) {
     return Object.prototype.toString.call(obj) === '[object Function]';
-  };
-
-  var _default = function (obj, src) {
-    // extend obj with src properties if not exists;
-    _each(src, function(val, key) {
-      if (!obj[key]) { obj[key] = src[key]; }
-    });
-  };
-
+  }
 
   function _each(obj, iterator) {
     if (_isArray(obj)) {
@@ -51,6 +44,13 @@
         }
       }
     }
+  }
+
+  function _default(obj, src) {
+    // extend obj with src properties if not exists;
+    _each(src, function(val, key) {
+      if (!obj[key]) { obj[key] = src[key]; }
+    });
   }
 
 
@@ -112,8 +112,8 @@
         if (e.name.toUpperCase().indexOf('QUOTA') >= 0) {
           try {
             _each(_storage, function(val, name) {
-              var key = name.split(_ns)[ 1 ];
-              if (key) { self.remove(key); }
+              var k = name.split(_ns)[1];
+              if (k) { self.remove(k); }
             });
             _storage.setItem(_ns + key, JSON.stringify(obj));
           } catch (e2) {
@@ -151,7 +151,7 @@
       var now = +new Date();
 
       _each(_storage, function(val, name) {
-        var key = name.split(_ns)[ 1 ];
+        var key = name.split(_ns)[1];
 
         if (!key) { return; }
 
@@ -161,7 +161,7 @@
         }
 
         var raw;
-        self.get(key, true, function(err, data) {
+        self.get(key, true, function(__, data) {
           raw = data; // can use this hack, because get is sync;
         });
         if (raw && (raw.expire > 0) && ((raw.expire - now) < 0)) {
@@ -176,7 +176,7 @@
 
   DomStorage.prototype.exists = function() {
     try {
-      localStorage.setItem('__ls_test__','__ls_test__');
+      localStorage.setItem('__ls_test__', '__ls_test__');
       localStorage.removeItem('__ls_test__');
       return true;
     } catch (e) {
@@ -211,7 +211,7 @@
       db.transaction(function (tx) {
         tx.executeSql(
           'DELETE FROM kv WHERE key = ?',
-          [key],
+          [ key ],
           function () { return callback(); },
           function (tx, err) { return callback(err); }
         );
@@ -223,7 +223,7 @@
       db.transaction(function (tx) {
         tx.executeSql(
           'INSERT OR REPLACE INTO kv (key, value, expire) VALUES (?, ?, ?)',
-          [key, JSON.stringify(value), expire],
+          [ key, JSON.stringify(value), expire ],
           function () { return callback(); },
           function (tx, err) { return callback(err); }
         );
@@ -235,7 +235,7 @@
       db.readTransaction(function (tx) {
         tx.executeSql(
           'SELECT value FROM kv WHERE key = ?',
-          [key],
+          [ key ],
           function (tx, result) {
             if (result.rows.length === 0) {
               return callback(new Error('key not found: ' + key));
@@ -261,7 +261,7 @@
         if (expiredOnly) {
           tx.executeSql(
             'DELETE FROM kv WHERE expire > 0 AND expire < ?',
-            [+new Date()],
+            [ +new Date() ],
             function () { return callback(); },
             function (tx, err) { return callback(err); }
           );
@@ -311,7 +311,7 @@
           db.deleteObjectStore('kv');
         }
         var store = db.createObjectStore('kv', { keyPath: 'key' });
-        store.createIndex("expire", "expire", { unique: false });
+        store.createIndex('expire', 'expire', { unique: false });
       };
     };
 
@@ -373,10 +373,10 @@
         var cursor = store.index('expire').openCursor(keyrange.bound(1, +new Date()));
 
         cursor.onsuccess = function (e) {
-          var cursor = e.target.result;
-          if (cursor) {
-            store.delete(cursor.primaryKey).onerror = function () { tx.abort(); };
-            cursor.continue();
+          var _cursor = e.target.result;
+          if (_cursor) {
+            store.delete(_cursor.primaryKey).onerror = function () { tx.abort(); };
+            _cursor.continue();
           }
         };
 
@@ -442,9 +442,15 @@
 
 
     this.init = function (callback) {
-      if (!db) { return callback(new Error('No available db')); }
+      if (!db) {
+        callback(new Error('No available db'));
+        return;
+      }
 
-      if (initState === 'done') { return callback(); }
+      if (initState === 'done') {
+        callback();
+        return;
+      }
 
       if (initState === 'progress') {
         initStack.push(callback);
@@ -471,7 +477,7 @@
     this.set = function (key, value, expire, callback) {
       if (_isFunction(expire)) {
         callback = expire;
-        expire = undefined;
+        expire = null;
       }
       callback = callback || _nope;
       expire = expire ? +(new Date()) + (expire * 1000) : 0;
@@ -527,10 +533,10 @@
 
     this.prefix       = options.prefix || 'bag';
     this.timeout      = options.timeout || 20;    // 20 seconds
-    this.expire       = options.expire || 30*24;  // 30 days
+    this.expire       = options.expire || 30 * 24;  // 30 days
     this.isValidItem  = options.isValidItem || null;
 
-    this.stores = _isArray(options.stores) ? options.stores : ['indexeddb', 'websql', 'localstorage'];
+    this.stores = _isArray(options.stores) ? options.stores : [ 'indexeddb', 'websql', 'localstorage' ];
 
     var storage = null;
 
@@ -543,7 +549,7 @@
 
     function getUrl(url, callback) {
       var xhr = new XMLHttpRequest();
-      xhr.open( 'GET', url );
+      xhr.open('GET', url);
       xhr.onreadystatechange = function() {
         if (xhr.readyState === 4) {
           if (xhr.status === 200) {
@@ -591,7 +597,7 @@
       getUrl(obj.url_real, function(err, result) {
         if (err) { return callback(err); }
 
-        var delay = (obj.expire || self.expire) * 60*60; // in seconds
+        var delay = (obj.expire || self.expire) * 60 * 60; // in seconds
 
         var cached = createCacheObj(obj, result);
 
@@ -621,7 +627,10 @@
       self.get(obj.key, function(err_cache, cached) {
 
         // Check error only on forced fetch from cache
-        if (err_cache && obj.cached) { return callback(err_cache); }
+        if (err_cache && obj.cached) {
+          callback(err_cache);
+          return;
+        }
 
         // if can't get object from store, then just load it from web.
         obj.execute = (obj.execute !== false);
@@ -643,7 +652,10 @@
         }
 
         saveUrl(obj, function(err_load) {
-          if (err_cache && err_load) { return callback(err_load); }
+          if (err_cache && err_load) {
+            callback(err_load);
+            return;
+          }
 
           if (err_load) {
             obj.type = obj.type || cached.originalType;
@@ -657,13 +669,13 @@
       });
     }
 
-
-    //---- helpers to set absolute sourcemap url
+    ////////////////////////////////////////////////////////////////////////////
+    // helpers to set absolute sourcemap url
 
     var sourceMappingRe = /(?:^([ \t]*\/\/[@|#][ \t]+sourceMappingURL=)(.+?)([ \t]*)$)|(?:^([ \t]*\/\*[@#][ \t]+sourceMappingURL=)(.+?)([ \t]*\*\/[ \t])*$)/mg;
 
     function parse_url(url) {
-      var pattern = new RegExp("^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\\?([^#]*))?(#(.*))?");
+      var pattern = new RegExp('^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\\?([^#]*))?(#(.*))?');
       var matches = url.match(pattern);
       return {
         scheme: matches[2],
@@ -678,21 +690,21 @@
       var refUrl = parse_url(obj.url);
       var done = false;
       var res = obj.data.replace(sourceMappingRe, function(match, p1, p2, p3, p4, p5, p6) {
-        if (!match) { return; }
+        if (!match) { return null; }
         done = true;
         // select matched group of params
         if (!p1) { p1 = p4; p2 = p5; p3 = p6; }
         var mapUrl = parse_url(p2);
 
-        var scheme = (mapUrl.scheme ? mapUrl.scheme : refUrl.scheme) || window.location.protocol.slice(0,-1);
+        var scheme = (mapUrl.scheme ? mapUrl.scheme : refUrl.scheme) || window.location.protocol.slice(0, -1);
         var authority = (mapUrl.authority ? mapUrl.authority : refUrl.authority) || window.location.host;
-        var path = mapUrl.path[0] === '/' ? mapUrl.path : refUrl.path.split('/').slice(0,-1).join('/') + '/' + mapUrl.path;
+        var path = mapUrl.path[0] === '/' ? mapUrl.path : refUrl.path.split('/').slice(0, -1).join('/') + '/' + mapUrl.path;
         return p1 + (scheme + '://' + authority + path) + p3;
       });
       return done ? res : '';
     }
 
-    //----
+    ////////////////////////////////////////////////////////////////////////////
 
     var handlers = {
       'application/javascript': function injectScript(obj) {
@@ -742,6 +754,7 @@
       }
     }
 
+    ////////////////////////////////////////////////////////////////////////////
 
     //
     // Public methods
@@ -752,11 +765,11 @@
 
       if (_isFunction(resources)) {
         callback = resources;
-        resources = undefined;
+        resources = null;
       }
 
       if (resources) {
-        var res = _isArray(resources) ? resources : [resources];
+        var res = _isArray(resources) ? resources : [ resources ];
 
         // convert string urls to structures
         // and push to queue
@@ -806,7 +819,7 @@
 
 
     // Create proxy methods (init store then subcall)
-    _each(['remove', 'get', 'set', 'clear'], function(method) {
+    _each([ 'remove', 'get', 'set', 'clear' ], function(method) {
       self[method] = function () {
         self._createStorage();
         storage[method].apply(storage, arguments);
@@ -815,13 +828,13 @@
 
 
     this.addHandler = function (types, handler) {
-      types = _isArray(types) ? types : [types];
+      types = _isArray(types) ? types : [ types ];
       _each(types, function (type) { handlers[type] = handler; });
     };
 
 
     this.removeHandler = function (types) {
-      self.addHandler(types, undefined);
+      self.addHandler(types/*, undefined*/);
     };
   }
 

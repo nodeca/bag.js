@@ -15,7 +15,7 @@ describe('require tests', function () {
 
 
   it('require cached fail', function (done) {
-    bag.require({ url: 'fixtures/require_text.txt', cached: true }, function (err, data) {
+    bag.require({ url: 'fixtures/require_text.txt', cached: true }, function (__, data) {
       assert.notOk(data);
       done();
     });
@@ -81,7 +81,7 @@ describe('require tests', function () {
       // hack cache content
       bag.get(url, function (err, val) {
         assert.notOk(err);
-        val.data = "window.test_const = 10;";
+        val.data = 'window.test_const = 10;';
         bag.set(url, val, function () {
           // now make shure that data fetched from cache
           bag.require({ url: url, unique: 123 }, function (err) {
@@ -103,7 +103,7 @@ describe('require tests', function () {
       // hack cache content
       bag.get(url, function (err, val) {
         assert.notOk(err);
-        val.data = "window.test_const = 10;";
+        val.data = 'window.test_const = 10;';
         bag.set(url, val, function () {
           // now make shure that data fetched from server again
           bag.require({ url: url, unique: 456 }, function (err) {
@@ -135,7 +135,7 @@ describe('require tests', function () {
       // hack cache content
       bag.get(url, function (err, val) {
         assert.notOk(err);
-        val.data = "window.test_const = 10;";
+        val.data = 'window.test_const = 10;';
         bag.set(url, val, function () {
           // make shure that data fetched from cache,
           // because invalidated by external validator
@@ -151,14 +151,14 @@ describe('require tests', function () {
 
 
   it('test execution order', function (done) {
-    bag.require(['fixtures/require_const.js', 'fixtures/require_const2.js'], function (err) {
+    bag.require([ 'fixtures/require_const.js', 'fixtures/require_const2.js' ], function (err) {
       assert.notOk(err);
       assert.strictEqual(window.test_const, 100);
       done();
     });
   });
 
-  
+
   it('add/replace handler', function (done) {
     var b = new window.Bag();
     var handled = false;
@@ -194,11 +194,11 @@ describe('require tests', function () {
       // hack cache content
       bag.get(url, function (err, val) {
         assert.notOk(err);
-        val.data = "window.test_const = 10;";
+        val.data = 'window.test_const = 10;';
         bag.set(url, val, function () {
           // make shure that data fetched from cache,
           // because invalidated by external validator
-          bag.require({url: url, live: true}, function (err) {
+          bag.require({ url: url, live: true }, function (err) {
             assert.notOk(err);
             assert.strictEqual(window.test_const, 5);
             done();
