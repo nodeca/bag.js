@@ -747,11 +747,21 @@
 
 
     function execute(obj) {
-      // cut off encoding if exists:
+      if (!obj.type) { return; }
+
+      // Cut off encoding if exists:
       // application/javascript; charset=UTF-8
-      if (obj.type && handlers[obj.type.split(';')[0]]) {
-        return handlers[obj.type.split(';')[0]](obj);
+      var handlerName = obj.type.split(';')[0];
+
+      // Fix outdated mime types if needed, to use single handler
+      if ([ 'application/x-javascript', 'text/javascript' ].indexOf(handlerName) >= 0) {
+        handlerName = 'application/javascript';
       }
+
+      if (handlers[handlerName]) {
+        handlers[handlerName](obj);
+      }
+      return;
     }
 
     ////////////////////////////////////////////////////////////////////////////
