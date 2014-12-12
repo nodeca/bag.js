@@ -1,7 +1,8 @@
 bag.js - JS / CSS loader + KV storage
 -------------------------------------
 
-[![Build Status](https://travis-ci.org/nodeca/bag.js.png?branch=master)](https://travis-ci.org/nodeca/bag.js)
+[![Build Status](https://travis-ci.org/nodeca/bag.js.svg?branch=master)](https://travis-ci.org/nodeca/bag.js)
+![Version](https://badge.fury.io/gh/nodeca%2Fbag.js.svg)
 
 __bag.js__ is loader for js / css aand other files, that uses browser local
 stores for caching. Consider it as alternative for other types of loaders for
@@ -107,7 +108,7 @@ bag.set('dolorem', obj, function(err) {
     console.log('Saving error: ', err);
     return;
   }
-  
+
   bag.get('dolorem', function(err, data) {
     if (err) {
       console.log('Loading error: ', err);
@@ -244,6 +245,4 @@ Related projects
 License
 -------
 
-Copyright (c) 2013 [Vitaly Puzrin](https://github.com/puzrin).
-Released under the MIT license. See
-[LICENSE](https://github.com/nodeca/bag.js/blob/master/LICENSE) for details.
+[MIT](https://github.com/nodeca/bag.js/blob/master/LICENSE)
