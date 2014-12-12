@@ -1,16 +1,28 @@
 /*
  * bag.js - js/css/other loader + kv storage
  *
- * Copyright 2013 Vitaly Puzrin
+ * Copyright 2013-2014 Vitaly Puzrin
  * https://github.com/nodeca/bag.js
  *
  * License MIT
  */
-(function(window, document) {
+
+/*global define*/
+
+(function (root, factory) {
+  'use strict';
+
+  if (typeof define === 'function' && define.amd) {
+    define(factory);
+  } else if (typeof module === 'object' && typeof module.exports === 'object') {
+    module.exports = factory();
+  } else {
+    root.Bag = factory();
+  }
+} (this, function () {
   'use strict';
 
   var head = document.head || document.getElementsByTagName('head')[0];
-  var console = window.console;
 
   //////////////////////////////////////////////////////////////////////////////
   // helpers
@@ -437,7 +449,9 @@
     if (!db) {
       // If no adaprets - don't make error for correct fallback.
       // Just log that we continue work without storing results.
-      console.log('None of requested storages available: ' + storesList);
+      if (typeof console !== 'undefined' && console.log) {
+        console.log('None of requested storages available: ' + storesList);
+      }
     }
 
 
@@ -848,7 +862,6 @@
     };
   }
 
+  return Bag;
 
-  window.Bag = Bag;
-
-})(this, document);
+}));
