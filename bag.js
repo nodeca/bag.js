@@ -401,10 +401,25 @@
 
 
   Idb.prototype.exists = function() {
-    return !!(window.indexedDB /*||
+    var db =  window.indexedDB /*||
               window.webkitIndexedDB ||
               window.mozIndexedDB ||
-              window.msIndexedDB*/);
+              window.msIndexedDB*/;
+
+    if (!db) {
+      return false;
+    }
+
+    // Check outdated idb implementations, where `onupgradeneede` event doesn't work,
+    // see https://github.com/pouchdb/pouchdb/issues/1207 for more details
+    var dbName = '__idb_test__';
+    var result = db.open(dbName, 1).onupgradeneeded === null;
+
+    if (db.deleteDatabase) {
+      db.deleteDatabase(dbName);
+    }
+
+    return result;
   };
 
 
