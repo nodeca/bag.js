@@ -334,7 +334,9 @@
       tx.oncomplete = function () { callback(); };
       tx.onerror = tx.onabort = function (e) { callback(new Error('Key remove error: ', e.target)); };
 
-      tx.objectStore('kv').delete(key).onerror = function () { tx.abort(); };
+      // IE 8 not allow to use reserved keywords as functions. More info:
+      // http://tiffanybbrown.com/2013/09/10/expected-identifier-bug-in-internet-explorer-8/
+      tx.objectStore('kv')['delete'](key).onerror = function () { tx.abort(); };
     };
 
 
@@ -387,8 +389,10 @@
         cursor.onsuccess = function (e) {
           var _cursor = e.target.result;
           if (_cursor) {
-            store.delete(_cursor.primaryKey).onerror = function () { tx.abort(); };
-            _cursor.continue();
+            // IE 8 not allow to use reserved keywords as functions (`delete` and `continue`). More info:
+            // http://tiffanybbrown.com/2013/09/10/expected-identifier-bug-in-internet-explorer-8/
+            store['delete'](_cursor.primaryKey).onerror = function () { tx.abort(); };
+            _cursor['continue']();
           }
         };
 
@@ -763,6 +767,9 @@
           txt = obj.data + '\n/*# sourceURL=' + obj.url + ' */';
         }
 
+        // Needed to enable `style.styleSheet` in IE
+        style.setAttribute('type', 'text/css');
+
         if (style.styleSheet) {
           style.styleSheet.cssText = txt; // IE method
         } else {
@@ -783,7 +790,7 @@
       var handlerName = obj.type.split(';')[0];
 
       // Fix outdated mime types if needed, to use single handler
-      if ([ 'application/x-javascript', 'text/javascript' ].indexOf(handlerName) >= 0) {
+      if (handlerName === 'application/x-javascript' || handlerName === 'text/javascript') {
         handlerName = 'application/javascript';
       }
 
