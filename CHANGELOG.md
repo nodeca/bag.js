@@ -1,3 +1,11 @@
+0.1.4 / 2015-06-21
+------------------
+
+- Fixed IE8 compatibility.
+- Fixed Android Browser IndexedDB capabilities test.
+- Added IE8-10 css load workaround for files with `@import` & `@fontface`.
+
+
 0.1.3 / 2014-12-12
 ------------------
 
