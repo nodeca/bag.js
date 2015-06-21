@@ -1,42 +1,41 @@
 bag.js - JS / CSS loader + KV storage
--------------------------------------
+=====================================
 
 [![Build Status](https://travis-ci.org/nodeca/bag.js.svg?branch=master)](https://travis-ci.org/nodeca/bag.js)
 ![Version](https://badge.fury.io/gh/nodeca%2Fbag.js.svg)
 
-__bag.js__ is loader for js / css aand other files, that uses browser local
+__bag.js__ is loader for `.js` / `.css` and other files, that uses browser
 stores for caching. Consider it as alternative for other types of loaders for
 modern browsers, that reduce number of server requests, especially for mobile
 devices. Also __bag.js__  can be used as simple key/value storage, that don't
 require you to know details about IndexedDB and WebSQL.
 
-This project is inspired by [basket.js](http://addyosmani.github.io/basket.js/),
-but provides more storages for big assets and universal key/value interface.
+This project is inspired by __[basket.js](http://addyosmani.github.io/basket.js/)__,
+but provides more safe storages for big assets and universal key/value interface.
 Key features are:
 
 - Parallel load and sequential execution for JS / CSS and other types of files
-- Use IndexedDB / WebSQL / localStorage - good, when you have big assets.
+- Use IndexedDB / WebSQL / localStorage - no size limits for big assets.
 - KV storage for objects, with simple interface.
-- No promisses, use callbacks instead, like in node.js
-- Simple way to prioritize scripts execution.
+- Callbacks-style interface, like in node.js
 - You can use multiple instances with different storage options. For example
   Indexeddb + WebSQL for assets and localStorage for user settings.
-- No external dependencies.
 - 3.2K when minified+gzipped
 - Partial compatibility with [basket.js](http://addyosmani.github.io/basket.js/).
 
 Install via bower:
 
-```
+```bash
 bower install bag.js
 ```
 
 
-### Examples
+Examples
+--------
 
 Simple:
 
-``` javascript
+```js
 var bag = new window.Bag();
 
 bag.require(['/site.css', '/jquery.js', '/site.js'], function (err) {
@@ -52,7 +51,7 @@ bag.require(['/site.css', '/jquery.js', '/site.js'], function (err) {
 
 Advanced:
 
-``` javascript
+```js
 var bag = new window.Bag({
   prefix: 'my_namespace',
   stores: ['indexeddb', 'websql'],
@@ -84,8 +83,7 @@ bag.require(files, function(err) {
 You can skip `new` keyword. Aslo, you can use chained style - when `require`
 called without callback, info is just remembered in internal stack:
 
-``` javascript
-
+```js
 window.Bag()
   .require('/site.css')
   .require('/jquery.js')
@@ -99,7 +97,7 @@ window.Bag()
 
 Using as key/value storage:
 
-``` javascript
+```js
 var obj = { lorem: 'ipsum' };
 var bag = new window.Bag();
 
@@ -129,6 +127,7 @@ bag.set('dolorem', obj, function(err) {
 });
 ```
 
+
 API
 ---
 
@@ -148,6 +147,7 @@ instance properties (they have the same names). Options (hash):
 Note 1: you can skip `new` keyword, calling `Bag()` will return you new instance anyway.
 
 Note 2: `prefix` must be set before `require`/`get`/`set`/`remove`/`clear` calls. Other options can be changed anytime.
+
 
 ### .require(files [, callback(err, data)])
 
