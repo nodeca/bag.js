@@ -771,12 +771,17 @@
         style.setAttribute('type', 'text/css');
 
         if (style.styleSheet) {
+          // We should append style element to DOM before assign css text to
+          // workaround IE bugs with `@import` and `@font-face`.
+          // https://github.com/andrewwakeling/ie-css-bugs
+          head.appendChild(style);
+
           style.styleSheet.cssText = txt; // IE method
         } else {
           style.appendChild(document.createTextNode(txt)); // others
+          head.appendChild(style);
         }
 
-        head.appendChild(style);
         return;
       }
     };
