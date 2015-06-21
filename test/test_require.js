@@ -1,15 +1,13 @@
-/*global describe, it, assert, beforeEach, after*/
-'use strict';
 
 describe('require tests', function () {
 
   var bag = new window.Bag();
 
-  beforeEach(function(done) {
+  beforeEach(function (done) {
     bag.clear(done);
   });
 
-  after(function(done) {
+  after(function (done) {
     bag.clear(done);
   });
 

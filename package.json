@@ -6,8 +6,10 @@
     "test": "make test"
   },
   "devDependencies": {
-    "eslint": "0.10.1",
+    "assertive-chai": "^2.0.1",
+    "eslint": "0.23.0",
     "eslint-plugin-nodeca": "~1.0.3",
+    "mocha": "^2.2.5",
     "mocha-browser": "~ 0.1.6",
     "phantomjs": "~ 1.9.7"
   }

@@ -60,7 +60,7 @@
 
   function _default(obj, src) {
     // extend obj with src properties if not exists;
-    _each(src, function(val, key) {
+    _each(src, function (val, key) {
       if (!obj[key]) { obj[key] = src[key]; }
     });
   }
@@ -90,7 +90,7 @@
   //////////////////////////////////////////////////////////////////////////////
   // Adapters for Store class
 
-  var DomStorage = function (namespace) {
+  function DomStorage(namespace) {
     var self = this;
     var _ns = namespace + '__';
     var _storage = localStorage;
@@ -123,7 +123,7 @@
         // Just remove all keys, without conditions, no optimizations needed.
         if (e.name.toUpperCase().indexOf('QUOTA') >= 0) {
           try {
-            _each(_storage, function(val, name) {
+            _each(_storage, function (val, name) {
               var k = name.split(_ns)[1];
               if (k) { self.remove(k); }
             });
@@ -162,7 +162,7 @@
     this.clear = function (expiredOnly, callback) {
       var now = +new Date();
 
-      _each(_storage, function(val, name) {
+      _each(_storage, function (val, name) {
         var key = name.split(_ns)[1];
 
         if (!key) { return; }
@@ -173,7 +173,7 @@
         }
 
         var raw;
-        self.get(key, true, function(__, data) {
+        self.get(key, true, function (__, data) {
           raw = data; // can use this hack, because get is sync;
         });
         if (raw && (raw.expire > 0) && ((raw.expire - now) < 0)) {
@@ -183,10 +183,10 @@
 
       callback();
     };
-  };
+  }
 
 
-  DomStorage.prototype.exists = function() {
+  DomStorage.prototype.exists = function () {
     try {
       localStorage.setItem('__ls_test__', '__ls_test__');
       localStorage.removeItem('__ls_test__');
@@ -198,7 +198,7 @@
 
 
 
-  var WebSql = function (namespace) {
+  function WebSql(namespace) {
     var db;
 
 
@@ -289,16 +289,16 @@
         }
       });
     };
-  };
+  }
 
 
-  WebSql.prototype.exists = function() {
+  WebSql.prototype.exists = function () {
     return (!!window.openDatabase);
   };
 
 
 
-  var Idb = function (namespace) {
+  function Idb(namespace) {
     var db;
 
     this.init = function (callback) {
@@ -307,17 +307,17 @@
 
       var req = idb.open(namespace, 2 /*version*/);
 
-      req.onsuccess = function(e) {
+      req.onsuccess = function (e) {
         db = e.target.result;
         callback();
       };
-      req.onblocked = function(e) {
+      req.onblocked = function (e) {
         callback(new Error('IndexedDB blocked. ' + e.target.errorCode));
       };
-      req.onerror = function(e) {
+      req.onerror = function (e) {
         callback(new Error('IndexedDB opening error. ' + e.target.errorCode));
       };
-      req.onupgradeneeded = function(e) {
+      req.onupgradeneeded = function (e) {
         db = e.target.result;
         if (db.objectStoreNames.contains('kv')) {
           db.deleteObjectStore('kv');
@@ -361,7 +361,7 @@
       tx.oncomplete = function () { callback(err, result); };
       tx.onerror = tx.onabort = function (e) { callback(new Error('Key get error: ', e.target)); };
 
-      tx.objectStore('kv').get(key).onsuccess = function(e) {
+      tx.objectStore('kv').get(key).onsuccess = function (e) {
         if (e.target.result) {
           result = e.target.result.value;
         } else {
@@ -401,10 +401,10 @@
         tx.objectStore('kv').clear().onerror = function () { tx.abort(); };
       }
     };
-  };
+  }
 
 
-  Idb.prototype.exists = function() {
+  Idb.prototype.exists = function () {
     var db =  window.indexedDB /*||
               window.webkitIndexedDB ||
               window.mozIndexedDB ||
@@ -432,16 +432,16 @@
   // key/value storage with expiration
 
   var storeAdapters = {
-    'indexeddb': Idb,
-    'websql': WebSql,
-    'localstorage': DomStorage
+    indexeddb: Idb,
+    websql: WebSql,
+    localstorage: DomStorage
   };
 
 
   // namespace - db name or similar
   // storesList - array of allowed adapter names to use
   //
-  var Storage = function (namespace, storesList) {
+  function Storage(namespace, storesList) {
     var self = this;
 
     var db = null;
@@ -451,7 +451,7 @@
     var initState;
     var initStack = [];
 
-    _each(storesList, function(name) {
+    _each(storesList, function (name) {
       // do storage names case insensitive
       name = name.toLowerCase();
 
@@ -466,11 +466,13 @@
     });
 
     if (!db) {
+      /* eslint-disable no-console */
       // If no adaprets - don't make error for correct fallback.
       // Just log that we continue work without storing results.
       if (typeof console !== 'undefined' && console.log) {
         console.log('None of requested storages available: ' + storesList);
       }
+      /* eslint-enable no-console */
     }
 
 
@@ -515,7 +517,7 @@
       callback = callback || _nope;
       expire = expire ? +(new Date()) + (expire * 1000) : 0;
 
-      this.init(function(err) {
+      this.init(function (err) {
         if (err) { return callback(err); }
         db.set(key, value, expire, callback);
       });
@@ -523,7 +525,7 @@
 
 
     this.get = function (key, callback) {
-      this.init(function(err) {
+      this.init(function (err) {
         if (err) { return callback(err); }
         db.get(key, callback);
       });
@@ -532,7 +534,7 @@
 
     this.remove = function (key, callback) {
       callback = callback || _nope;
-      this.init(function(err) {
+      this.init(function (err) {
         if (err) { return callback(err); }
         db.remove(key, callback);
       });
@@ -546,12 +548,12 @@
       }
       callback = callback || _nope;
 
-      this.init(function(err) {
+      this.init(function (err) {
         if (err) { return callback(err); }
         db.clear(expiredOnly, callback);
       });
     };
-  };
+  }
 
 
   //////////////////////////////////////////////////////////////////////////////
@@ -583,7 +585,7 @@
     function getUrl(url, callback) {
       var xhr = new XMLHttpRequest();
       xhr.open('GET', url);
-      xhr.onreadystatechange = function() {
+      xhr.onreadystatechange = function () {
         if (xhr.readyState === 4) {
           if (xhr.status === 200) {
             callback(null, {
@@ -627,14 +629,14 @@
     }
 
     function saveUrl(obj, callback) {
-      getUrl(obj.url_real, function(err, result) {
+      getUrl(obj.url_real, function (err, result) {
         if (err) { return callback(err); }
 
         var delay = (obj.expire || self.expire) * 60 * 60; // in seconds
 
         var cached = createCacheObj(obj, result);
 
-        self.set(obj.key, cached, delay, function() {
+        self.set(obj.key, cached, delay, function () {
           // Don't check error - have to return data anyway
           _default(obj, cached);
           callback(null, obj);
@@ -657,7 +659,7 @@
       if (!obj.url) { return callback(); }
       obj.key = (obj.key || obj.url);
 
-      self.get(obj.key, function(err_cache, cached) {
+      self.get(obj.key, function (err_cache, cached) {
 
         // Check error only on forced fetch from cache
         if (err_cache && obj.cached) {
@@ -684,7 +686,7 @@
           obj.url_real = obj.url + ((obj.url.indexOf('?') > 0) ? '&' : '?') + 'bag-unique=' + obj.unique;
         }
 
-        saveUrl(obj, function(err_load) {
+        saveUrl(obj, function (err_load) {
           if (err_cache && err_load) {
             callback(err_load);
             return;
@@ -705,7 +707,9 @@
     ////////////////////////////////////////////////////////////////////////////
     // helpers to set absolute sourcemap url
 
+    /* eslint-disable max-len */
     var sourceMappingRe = /(?:^([ \t]*\/\/[@|#][ \t]+sourceMappingURL=)(.+?)([ \t]*)$)|(?:^([ \t]*\/\*[@#][ \t]+sourceMappingURL=)(.+?)([ \t]*\*\/[ \t])*$)/mg;
+    /* eslint-enable max-len */
 
     function parse_url(url) {
       var pattern = new RegExp('^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\\?([^#]*))?(#(.*))?');
@@ -722,7 +726,7 @@
     function patchMappingUrl(obj) {
       var refUrl = parse_url(obj.url);
       var done = false;
-      var res = obj.data.replace(sourceMappingRe, function(match, p1, p2, p3, p4, p5, p6) {
+      var res = obj.data.replace(sourceMappingRe, function (match, p1, p2, p3, p4, p5, p6) {
         if (!match) { return null; }
         done = true;
         // select matched group of params
@@ -731,7 +735,9 @@
 
         var scheme = (mapUrl.scheme ? mapUrl.scheme : refUrl.scheme) || window.location.protocol.slice(0, -1);
         var authority = (mapUrl.authority ? mapUrl.authority : refUrl.authority) || window.location.host;
+        /* eslint-disable max-len */
         var path = mapUrl.path[0] === '/' ? mapUrl.path : refUrl.path.split('/').slice(0, -1).join('/') + '/' + mapUrl.path;
+        /* eslint-enable max-len */
         return p1 + (scheme + '://' + authority + path) + p3;
       });
       return done ? res : '';
@@ -811,7 +817,7 @@
     // Public methods
     //
 
-    this.require = function(resources, callback) {
+    this.require = function (resources, callback) {
       var queue = self._queue;
 
       if (_isFunction(resources)) {
@@ -824,7 +830,7 @@
 
         // convert string urls to structures
         // and push to queue
-        _each(res, function(r, i) {
+        _each(res, function (r, i) {
           if (_isString(r)) { res[i] = { url: r }; }
           queue.push(res[i]);
         });
@@ -837,7 +843,7 @@
         return self;
       }
 
-      _asyncEach(queue, fetch, function(err) {
+      _asyncEach(queue, fetch, function (err) {
         if (err) {
           // cleanup
           self._chained = false;
@@ -847,7 +853,7 @@
           return;
         }
 
-        _each(queue, function(obj) {
+        _each(queue, function (obj) {
           if (obj.execute) {
             execute(obj);
           }
@@ -856,7 +862,7 @@
         // return content only, if one need fuul info -
         // check input object, that will be extended.
         var replies = [];
-        _each(queue, function(r) { replies.push(r.data); });
+        _each(queue, function (r) { replies.push(r.data); });
 
         var result = (_isArray(resources) || self._chained) ? replies : replies[0];
 
@@ -870,7 +876,7 @@
 
 
     // Create proxy methods (init store then subcall)
-    _each([ 'remove', 'get', 'set', 'clear' ], function(method) {
+    _each([ 'remove', 'get', 'set', 'clear' ], function (method) {
       self[method] = function () {
         self._createStorage();
         storage[method].apply(storage, arguments);

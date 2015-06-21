@@ -1,5 +1,3 @@
-/*global describe, it, assert*/
-'use strict';
 
 describe('extra tests', function () {
 
@@ -69,7 +67,7 @@ describe('extra tests', function () {
   });
 
 
-  it('init without `new` keyword', function() {
+  it('init without `new` keyword', function () {
     /*eslint-disable new-cap*/
     assert.instanceOf(new window.Bag(), window.Bag);
     assert.instanceOf(window.Bag(), window.Bag);

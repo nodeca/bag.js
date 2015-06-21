@@ -1,5 +1,3 @@
-/*global describe, it, assert, before, after*/
-'use strict';
 
 describe('IndexedDB tests', function () {
 
@@ -20,11 +18,11 @@ describe('IndexedDB tests', function () {
   var obj = { lorem: 'imsum', dolorem: 'casum' };
   var obj2 = { tratum: 'curem', lafem: 'pendum' };
 
-  before(function(done) {
+  before(function (done) {
     bag.clear(function () { done(); });
   });
 
-  after(function(done) {
+  after(function (done) {
     bag.clear(function () { done(); });
   });
 
@@ -60,7 +58,7 @@ describe('IndexedDB tests', function () {
   it('key remove', function (done) {
     bag.remove(key, function (err) {
       assert.notOk(err);
-      bag.get(key, function(err, data) {
+      bag.get(key, function (err, data) {
         assert.ok(err);
         assert.notOk(data);
         done();
@@ -72,7 +70,7 @@ describe('IndexedDB tests', function () {
   it('persistance', function (done) {
     bag.set(key, obj, function (err) {
       assert.notOk(err);
-      bag.clear(true, function(err) {
+      bag.clear(true, function (err) {
         assert.notOk(err);
         bag.get(key, function (err, data) {
           assert.notOk(err);
@@ -87,7 +85,7 @@ describe('IndexedDB tests', function () {
   it('clear', function (done) {
     bag.set(key, obj, function (err) {
       assert.notOk(err);
-      bag.clear(function(err) {
+      bag.clear(function (err) {
         assert.notOk(err);
         bag.get(key, function (err) {
           assert.ok(err);
@@ -102,7 +100,7 @@ describe('IndexedDB tests', function () {
     bag.set(key, obj, 1, function (err) {
       assert.notOk(err);
       setTimeout(function () {
-        bag.clear(true, function(err) {
+        bag.clear(true, function (err) {
           assert.notOk(err);
           bag.get(key, function (err, data) {
             assert.notOk(err);
@@ -119,7 +117,7 @@ describe('IndexedDB tests', function () {
     bag.set(key, obj, 0.005, function (err) {
       assert.notOk(err);
       setTimeout(function () {
-        bag.clear(true, function(err) {
+        bag.clear(true, function (err) {
           assert.notOk(err);
           bag.get(key, function (err) {
             assert.ok(err);
