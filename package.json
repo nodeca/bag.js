@@ -1,16 +1,21 @@
 {
-  "name": "---",
-  "version": "0.0.0",
-  "private": true,
+  "name": "bagjs",
+  "version": "1.0.0",
   "scripts": {
     "test": "make test"
   },
+  "files": [
+    "bag.js"
+  ],
+  "main": "bag.js",
+  "repository": "markdown-it/bag.js",
+  "license": "MIT",
   "devDependencies": {
     "assertive-chai": "^2.0.1",
     "eslint": "0.23.0",
     "eslint-plugin-nodeca": "~1.0.3",
     "mocha": "^2.2.5",
-    "mocha-browser": "~ 0.1.6",
+    "mocha-browser": "~ 0.2.0",
     "phantomjs": "~ 1.9.7"
   }
 }

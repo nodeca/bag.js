@@ -1,3 +1,9 @@
+1.0.0 / 2016-01-08
+------------------
+
+- Maintenance release. Now also available in npm as `bagjs`.
+
+
 0.1.4 / 2015-06-21
 ------------------
 

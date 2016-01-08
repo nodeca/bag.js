@@ -29,6 +29,12 @@ Install via bower:
 bower install bag.js
 ```
 
+Install via npm:
+
+```bash
+bower install bagjs --save
+```
+
 
 Examples
 --------
