@@ -2,7 +2,7 @@ bag.js - JS / CSS loader + KV storage
 =====================================
 
 [![Build Status](https://travis-ci.org/nodeca/bag.js.svg?branch=master)](https://travis-ci.org/nodeca/bag.js)
-![Version](https://badge.fury.io/gh/nodeca%2Fbag.js.svg)
+[![NPM version](https://img.shields.io/npm/v/bagjs.svg?style=flat)](https://www.npmjs.org/package/bagjs)
 
 __bag.js__ is loader for `.js` / `.css` and other files, that uses browser
 stores for caching. Consider it as alternative for other types of loaders for
