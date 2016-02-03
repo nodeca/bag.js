@@ -29,31 +29,25 @@
 
   function _nope() { return; }
 
-  function _isString(obj) {
-    return Object.prototype.toString.call(obj) === '[object String]';
-  }
+  function _class(obj) { return Object.prototype.toString.call(obj); }
+
+  function _isString(obj) { return _class(obj) === '[object String]'; }
+
+  function _isFunction(obj) { return _class(obj) === '[object Function]'; }
 
   var _isArray = Array.isArray || function isArray(obj) {
-    return Object.prototype.toString.call(obj) === '[object Array]';
+    return _class(obj) === '[object Array]';
   };
 
-  function _isFunction(obj) {
-    return Object.prototype.toString.call(obj) === '[object Function]';
-  }
 
   function _each(obj, iterator) {
     if (_isArray(obj)) {
-      if (obj.forEach) {
-        return obj.forEach(iterator);
-      }
-      for (var i = 0; i < obj.length; i++) {
-        iterator(obj[i], i, obj);
-      }
+      if (obj.forEach) return obj.forEach(iterator);
+
+      for (var i = 0; i < obj.length; i++) iterator(obj[i], i, obj);
     } else {
       for (var k in obj) {
-        if (Object.prototype.hasOwnProperty.call(obj, k)) {
-          iterator(obj[k], k);
-        }
+        if (Object.prototype.hasOwnProperty.call(obj, k)) iterator(obj[k], k);
       }
     }
   }
@@ -61,14 +55,14 @@
   function _default(obj, src) {
     // extend obj with src properties if not exists;
     _each(src, function (val, key) {
-      if (!obj[key]) { obj[key] = src[key]; }
+      if (!obj[key]) obj[key] = src[key];
     });
   }
 
 
   function _asyncEach(arr, iterator, callback) {
     callback = callback || _nope;
-    if (!arr.length) { return callback(); }
+    if (!arr.length) return callback();
 
     var completed = 0;
     _each(arr, function (x) {
@@ -165,7 +159,7 @@
       _each(_storage, function (val, name) {
         var key = name.split(_ns)[1];
 
-        if (!key) { return; }
+        if (!key) return;
 
         if (!expiredOnly) {
           self.remove(key);
@@ -173,12 +167,12 @@
         }
 
         var raw;
+
         self.get(key, true, function (__, data) {
           raw = data; // can use this hack, because get is sync;
         });
-        if (raw && (raw.expire > 0) && ((raw.expire - now) < 0)) {
-          self.remove(key);
-        }
+
+        if (raw && (raw.expire > 0) && ((raw.expire - now) < 0)) self.remove(key);
       });
 
       callback();
@@ -205,14 +199,14 @@
     this.init = function (callback) {
       db = window.openDatabase(namespace, '1.0', 'bag.js db', 2e5);
 
-      if (!db) { return callback('Can\'t open webdql database'); }
+      if (!db) return callback('Can\'t open webdql database');
 
       db.transaction(function (tx) {
         tx.executeSql(
           'CREATE TABLE IF NOT EXISTS kv (key TEXT PRIMARY KEY, value TEXT, expire INTEGER KEY)',
           [],
-          function () { return callback(); },
-          function (tx, err) { return callback(err); }
+          function () { callback(); },
+          function (tx, err) { callback(err); }
         );
       });
     };
@@ -224,8 +218,8 @@
         tx.executeSql(
           'DELETE FROM kv WHERE key = ?',
           [ key ],
-          function () { return callback(); },
-          function (tx, err) { return callback(err); }
+          function () { callback(); },
+          function (tx, err) { callback(err); }
         );
       });
     };
@@ -236,8 +230,8 @@
         tx.executeSql(
           'INSERT OR REPLACE INTO kv (key, value, expire) VALUES (?, ?, ?)',
           [ key, JSON.stringify(value), expire ],
-          function () { return callback(); },
-          function (tx, err) { return callback(err); }
+          function () { callback(); },
+          function (tx, err) { callback(err); }
         );
       });
     };
@@ -261,7 +255,7 @@
             }
             callback(err, data);
           },
-          function (tx, err) { return callback(err); }
+          function (tx, err) { callback(err); }
         );
       });
     };
@@ -274,16 +268,16 @@
           tx.executeSql(
             'DELETE FROM kv WHERE expire > 0 AND expire < ?',
             [ +new Date() ],
-            function () { return callback(); },
-            function (tx, err) { return callback(err); }
+            function () { callback(); },
+            function (tx, err) { callback(err); }
           );
         } else {
           db.transaction(function (tx) {
             tx.executeSql(
               'DELETE FROM kv',
               [],
-              function () { return callback(); },
-              function (tx, err) { return callback(err); }
+              function () { callback(); },
+              function (tx, err) { callback(err); }
             );
           });
         }
@@ -319,10 +313,11 @@
       };
       req.onupgradeneeded = function (e) {
         db = e.target.result;
-        if (db.objectStoreNames.contains('kv')) {
-          db.deleteObjectStore('kv');
-        }
+
+        if (db.objectStoreNames.contains('kv')) db.deleteObjectStore('kv');
+
         var store = db.createObjectStore('kv', { keyPath: 'key' });
+
         store.createIndex('expire', 'expire', { unique: false });
       };
     };
@@ -362,11 +357,8 @@
       tx.onerror = tx.onabort = function (e) { callback(new Error('Key get error: ', e.target)); };
 
       tx.objectStore('kv').get(key).onsuccess = function (e) {
-        if (e.target.result) {
-          result = e.target.result.value;
-        } else {
-          err = new Error('key not found: ' + key);
-        }
+        if (e.target.result) result = e.target.result.value;
+        else err = new Error('key not found: ' + key);
       };
     };
 
@@ -410,18 +402,14 @@
               window.mozIndexedDB ||
               window.msIndexedDB*/;
 
-    if (!db) {
-      return false;
-    }
+    if (!db) return false;
 
     // Check outdated idb implementations, where `onupgradeneede` event doesn't work,
     // see https://github.com/pouchdb/pouchdb/issues/1207 for more details
     var dbName = '__idb_test__';
     var result = db.open(dbName, 1).onupgradeneeded === null;
 
-    if (db.deleteDatabase) {
-      db.deleteDatabase(dbName);
-    }
+    if (db.deleteDatabase) db.deleteDatabase(dbName);
 
     return result;
   };
@@ -504,7 +492,7 @@
 
         // Clear expired. A bit dirty without callback,
         // but we don't care until clear compleete
-        if (!err) { self.clear(true); }
+        if (!err) self.clear(true);
       });
     };
 
@@ -518,7 +506,7 @@
       expire = expire ? +(new Date()) + (expire * 1000) : 0;
 
       this.init(function (err) {
-        if (err) { return callback(err); }
+        if (err) return callback(err);
         db.set(key, value, expire, callback);
       });
     };
@@ -526,7 +514,7 @@
 
     this.get = function (key, callback) {
       this.init(function (err) {
-        if (err) { return callback(err); }
+        if (err) return callback(err);
         db.get(key, callback);
       });
     };
@@ -535,7 +523,7 @@
     this.remove = function (key, callback) {
       callback = callback || _nope;
       this.init(function (err) {
-        if (err) { return callback(err); }
+        if (err) return callback(err);
         db.remove(key, callback);
       });
     };
@@ -549,7 +537,7 @@
       callback = callback || _nope;
 
       this.init(function (err) {
-        if (err) { return callback(err); }
+        if (err) return callback(err);
         db.clear(expiredOnly, callback);
       });
     };
@@ -560,7 +548,7 @@
   // Bag class implementation
 
   function Bag(options) {
-    if (!(this instanceof Bag)) { return new Bag(options); }
+    if (!(this instanceof Bag)) return new Bag(options);
 
     var self = this;
 
@@ -579,7 +567,7 @@
     this._chained = false;
 
     this._createStorage = function () {
-      if (!storage) { storage = new Storage(self.prefix, self.stores); }
+      if (!storage) storage = new Storage(self.prefix, self.stores);
     };
 
     function getUrl(url, callback) {
@@ -616,7 +604,7 @@
       var cacheObj = {};
 
       _each([ 'url', 'key', 'unique' ], function (key) {
-        if (obj[key]) { cacheObj[key] = obj[key]; }
+        if (obj[key]) cacheObj[key] = obj[key];
       });
 
       var now = +new Date();
@@ -630,7 +618,7 @@
 
     function saveUrl(obj, callback) {
       getUrl(obj.url_real, function (err, result) {
-        if (err) { return callback(err); }
+        if (err) return callback(err);
 
         var delay = (obj.expire || self.expire) * 60 * 60; // in seconds
 
@@ -656,7 +644,7 @@
 
     function fetch(obj, callback) {
 
-      if (!obj.url) { return callback(); }
+      if (!obj.url) return callback();
       obj.key = (obj.key || obj.url);
 
       self.get(obj.key, function (err_cache, cached) {
@@ -727,7 +715,7 @@
       var refUrl = parse_url(obj.url);
       var done = false;
       var res = obj.data.replace(sourceMappingRe, function (match, p1, p2, p3, p4, p5, p6) {
-        if (!match) { return null; }
+        if (!match) return null;
         done = true;
         // select matched group of params
         if (!p1) { p1 = p4; p2 = p5; p3 = p6; }
@@ -794,7 +782,7 @@
 
 
     function execute(obj) {
-      if (!obj.type) { return; }
+      if (!obj.type) return;
 
       // Cut off encoding if exists:
       // application/javascript; charset=UTF-8
@@ -805,9 +793,8 @@
         handlerName = 'application/javascript';
       }
 
-      if (handlers[handlerName]) {
-        handlers[handlerName](obj);
-      }
+      if (handlers[handlerName]) handlers[handlerName](obj);
+
       return;
     }
 
@@ -831,7 +818,7 @@
         // convert string urls to structures
         // and push to queue
         _each(res, function (r, i) {
-          if (_isString(r)) { res[i] = { url: r }; }
+          if (_isString(r)) res[i] = { url: r };
           queue.push(res[i]);
         });
       }
@@ -853,15 +840,12 @@
           return;
         }
 
-        _each(queue, function (obj) {
-          if (obj.execute) {
-            execute(obj);
-          }
-        });
+        _each(queue, function (obj) { if (obj.execute) execute(obj); });
 
         // return content only, if one need fuul info -
         // check input object, that will be extended.
         var replies = [];
+
         _each(queue, function (r) { replies.push(r.data); });
 
         var result = (_isArray(resources) || self._chained) ? replies : replies[0];

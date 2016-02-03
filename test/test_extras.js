@@ -33,7 +33,7 @@ describe('extra tests', function () {
 
     // create big data (>5mb in json)
     var huge = new Array(1000000);
-    for (var i = 0, l = huge.length; i < l; i++) { huge[i] = '1234567890'; }
+    for (var i = 0, l = huge.length; i < l; i++) huge[i] = '1234567890';
 
     b.set('permanent', 'permanent', function (err) {
       assert.notOk(err);
