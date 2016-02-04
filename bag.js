@@ -327,7 +327,7 @@
         db = window.openDatabase(namespace, '1.0', 'bag.js db', 2e5);
 
         if (!db) {
-          reject("Can't open webdql database");
+          reject("Can't open websql database");
           return;
         }
 

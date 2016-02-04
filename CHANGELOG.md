@@ -1,7 +1,7 @@
 2.0.0 / WIP
 ------------------
 
-- Rewritten to promises. All methods now supports both promisses
+- Rewritten to promises. All methods now supports both promises
   and callbacks.
 - Dropped `.require()` chaining (now used by promises).
 

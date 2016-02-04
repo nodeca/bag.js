@@ -7,7 +7,7 @@ bag.js - JS / CSS loader + KV storage
 __bag.js__ is loader for `.js` / `.css` and other files, that uses browser
 stores for caching. Consider it as alternative for other types of loaders for
 modern browsers, that reduce number of server requests, especially for mobile
-devices. Also __bag.js__  can be used as simple key/value storage, that don't
+devices. Also __bag.js__  can be used as simple key/value storage, that doesn't
 require you to know details about IndexedDB and WebSQL.
 
 This project is inspired by __[basket.js](http://addyosmani.github.io/basket.js/)__,
@@ -87,7 +87,7 @@ bag.require(files)
 })
 ```
 
-You can skip `new` keyword. Aslo, you can use callbacks:
+You can skip `new` keyword. Also, you can use callbacks:
 
 ```js
 window.Bag().require([ '/site.css', '/site.js'], function (err, data) {
@@ -125,7 +125,7 @@ API
 ---
 
 __Note__, all methods with optional callbacks will return promises if callback
-not set.
+is not set.
 
 
 ### new Bag([options])
@@ -149,10 +149,10 @@ Note 2: `prefix` must be set before `require`/`get`/`set`/`remove`/`clear` calls
 ### .require(files [, callback(err, data)])
 
 1. Load files from server or from cache.
-2. Inject known types into page (js/css by default), if execution not disabled.
+2. Inject known types into page (js/css by default), unless execution is disabled.
    When multiple files requested (files are `Array`), those are loaded in
    parallel, but injected in defined order.
-3. Also files content is returned in result.
+3. Also, content of the files is returned in the result.
 
 `files` param can be:
 
@@ -174,11 +174,11 @@ resource info:
 callback params:
 
 - `err` - error info if loading failed
-- `data` - (Array|String) with loaded content, dependong on `files` type. When
-  single resource requester (`Object`|`String`), `data` is `String`. When
-  `Array` of resourses requested, or chained call done, data is array of strings.
+- `data` - (Array|String) with loaded content, depending on `files` type. If
+  a single resource is requested (`Object`|`String`), `data` is `String`. If
+  an `Array` of resources is requested, or chained call done, data is array of strings.
 
-Note, if you pass resources info not in short form, input objects are extended
+Note, unless you pass resources info in short form, input objects are extended
 with loaded data.
 
 
@@ -195,16 +195,16 @@ Load data by `key` name. Return result via callback:
 Put data into storage under `key` name.
 
 - `key` - String to address data.
-- `data` - JS object to store. We currently support only objects, serializeable
+- `data` - JS object to store. We currently support only objects, serializable
   by JSON. Don't try to put functions or arraybuffers.
 - `expire` - Expiration time in seconds. Don't expire by default.
-- `callback(err)` - Function to call when compleete. `err` contains error
+- `callback(err)` - Function to call when complete. `err` contains error
   on fail.
 
 
 ### .remove(key [, callback(err)])
 
-Remove `key` data from store. Call `callback` when compleete. If error happens,
+Remove `key` data from store. Call `callback` when complete. If error happens,
 error info passed in first callback's param.
 
 
