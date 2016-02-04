@@ -27,8 +27,6 @@
   //////////////////////////////////////////////////////////////////////////////
   // helpers
 
-  function _nope() { return; }
-
   function _class(obj) { return Object.prototype.toString.call(obj); }
 
   function _isString(obj) { return _class(obj) === '[object String]'; }
@@ -57,28 +55,166 @@
     _each(src, function (val, key) {
       if (!obj[key]) obj[key] = src[key];
     });
+    return obj;
   }
 
+  function promiseOrCallback(promise, cb) {
+    if (!cb) return promise;
 
-  function _asyncEach(arr, iterator, callback) {
-    callback = callback || _nope;
-    if (!arr.length) return callback();
+    var called = false;
 
-    var completed = 0;
-    _each(arr, function (x) {
-      iterator(x, function (err) {
-        if (err) {
-          callback(err);
-          callback = _nope;
-        } else {
-          completed += 1;
-          if (completed >= arr.length) {
-            callback();
+    promise.then(
+      function (data) {
+        setTimeout(function () {
+          if (!called) {
+            called = true;
+            cb(null, data);
           }
-        }
-      });
-    });
+        }, 0);
+      },
+      function (err) {
+        setTimeout(function () {
+          if (!called) {
+            called = true;
+            cb(err);
+          }
+        }, 0);
+      }
+    );
   }
+
+  //////////////////////////////////////////////////////////////////////////////
+
+  // Simple thenable implementation. Originally by @medikoo
+  // https://github.com/medikoo/plain-promise
+  // Modified to use ES3 only :)
+
+  /*eslint-disable func-style*/
+  var PP = function (executor) {
+    var self = this;
+
+    this._callbacks = [];
+
+    executor(
+      function (v) { self._resolve(v); },
+      function (v) { self._reject(v); }
+    );
+  };
+
+  PP.resolve = function (value) {
+    return new PP(function (resolve) { resolve(value); });
+  };
+
+  PP.reject = function (error) {
+    return new PP(function (resolve, reject) { reject(error); });
+  };
+
+  PP.cast = function (value) {
+    if (value instanceof PP) return value;
+    return PP.resolve(value);
+  };
+
+  PP.prototype = {
+    constructor: PP,
+
+    // Private properties and methods:
+    _failed: false,
+    _resolved: false,
+    _settled: false,
+    _release: function (onSuccess, onFail) {
+      /*eslint-disable no-lonely-if*/
+      if (this._failed) {
+        if (typeof onFail === 'function') onFail(this._value);
+        else throw this._value;
+      } else {
+        if (typeof onSuccess === 'function') onSuccess(this._value);
+      }
+    },
+    _resolve: function (value) {
+      if (this._resolved) return;
+      this._resolved = true;
+
+      var self = this;
+
+      if (value instanceof PP) {
+        value.done(function (v) {
+          self._settle(v);
+        }, function (error) {
+          self._failed = true;
+          self._settle(error);
+        });
+      } else {
+        this._settle(value);
+      }
+    },
+    _reject: function (value) {
+      if (this._resolved) return;
+      this._resolved = true;
+      this._failed = true;
+      this._settle(value);
+    },
+    _settle: function (value) {
+      this._settled = true;
+      this._value = value;
+
+      var self = this;
+      // Do not release before `resolve` or `reject` returns
+      setTimeout(function () {
+        _each(self._callbacks, function (data) {
+          self._release(data.onSuccess, data.onFail);
+        });
+      }, 0);
+    },
+
+    // Public API:
+    // Warning: Some implementations do not provide `done`
+    done: function (onSuccess, onFail) {
+      var self = this;
+
+      if (this._settled) {
+        // Do not release before `done` returns
+        setTimeout(function () { self._release(onSuccess, onFail); }, 0);
+      } else {
+        this._callbacks.push({ onSuccess: onSuccess, onFail: onFail });
+      }
+    },
+    then: function (onSuccess, onFail) {
+      var self = this;
+
+      return new PP(function (resolve, reject) {
+        self.done(function (value) {
+          if (typeof onSuccess === 'function') {
+            try {
+              value = onSuccess(value);
+            } catch (e) {
+              reject(e);
+              return;
+            }
+          }
+          resolve(value);
+        }, function (value) {
+          if (typeof onFail === 'function') {
+            try {
+              value = onFail(value);
+            } catch (e) {
+              reject(e);
+              return;
+            }
+            resolve(value);
+          } else {
+            reject(value);
+          }
+        });
+      });
+    },
+    'catch': function (onFail) {
+      return this.then(null, onFail);
+    }
+  };
+
+
+
+  var P = window.Promise || PP;
 
 
   //////////////////////////////////////////////////////////////////////////////
@@ -87,100 +223,90 @@
   function DomStorage(namespace) {
     var self = this;
     var _ns = namespace + '__';
-    var _storage = localStorage;
 
+    this.init = function () { return P.resolve(); };
 
-    this.init = function (callback) {
-      callback();
+    this.remove = function (key) {
+      localStorage.removeItem(_ns + key);
+      return P.resolve();
     };
 
 
-    this.remove = function (key, callback) {
-      callback = callback || _nope;
-      _storage.removeItem(_ns + key);
-      callback();
-    };
-
-
-    this.set = function (key, value, expire, callback) {
+    this.set = function (key, value, expire) {
       var obj = {
         value: value,
         expire: expire
       };
 
-      var err;
-
-      try {
-        _storage.setItem(_ns + key, JSON.stringify(obj));
-      } catch (e) {
-        // On quota error try to reset storage & try again.
-        // Just remove all keys, without conditions, no optimizations needed.
-        if (e.name.toUpperCase().indexOf('QUOTA') >= 0) {
-          try {
-            _each(_storage, function (val, name) {
-              var k = name.split(_ns)[1];
-              if (k) { self.remove(k); }
-            });
-            _storage.setItem(_ns + key, JSON.stringify(obj));
-          } catch (e2) {
-            err = e2;
+      return new P(function (resolve, reject) {
+        try {
+          localStorage.setItem(_ns + key, JSON.stringify(obj));
+          resolve();
+        } catch (e) {
+          // On quota error try to reset storage & try again.
+          // Just remove all keys, without conditions, no optimizations needed.
+          if (e.name.toUpperCase().indexOf('QUOTA') >= 0) {
+            try {
+              _each(localStorage, function (val, name) {
+                var k = name.split(_ns)[1];
+                if (k) { self.remove(k); }
+              });
+              localStorage.setItem(_ns + key, JSON.stringify(obj));
+              resolve();
+            } catch (e2) {
+              reject(e2);
+            }
+          } else {
+            reject(e);
           }
-        } else {
-          err = e;
         }
-      }
-
-      callback(err);
+      });
     };
 
 
-    this.get = function (key, raw, callback) {
-      if (_isFunction(raw)) {
-        callback = raw;
-        raw = false;
-      }
-
-      var err, data;
-
-      try {
-        data = JSON.parse(_storage.getItem(_ns + key));
-        data = raw ? data : data.value;
-      } catch (e) {
-        err = new Error('Can\'t read key: ' + key);
-      }
-
-      callback(err, data);
+    this.get = function (key, raw) {
+      return new P(function (resolve, reject) {
+        try {
+          var data = JSON.parse(localStorage.getItem(_ns + key));
+          resolve(data = raw ? data : data.value);
+        } catch (e) {
+          reject(new Error("Can't read key: " + key));
+        }
+      });
     };
 
 
-    this.clear = function (expiredOnly, callback) {
+    this.clear = function (expiredOnly) {
       var now = +new Date();
+      var p = P.resolve();
 
-      _each(_storage, function (val, name) {
+      _each(localStorage, function (val, name) {
         var key = name.split(_ns)[1];
 
         if (!key) return;
 
         if (!expiredOnly) {
-          self.remove(key);
+          p = p.then(function () { self.remove(key); });
           return;
         }
 
-        var raw;
-
-        self.get(key, true, function (__, data) {
-          raw = data; // can use this hack, because get is sync;
+        p = p.then(function () {
+          return self.get(key, true)
+            .then(function (raw) {
+              if (raw && (raw.expire > 0) && ((raw.expire - now) < 0)) {
+                // no need to chain promise, because operation is sync
+                self.remove(key);
+              }
+            });
         });
-
-        if (raw && (raw.expire > 0) && ((raw.expire - now) < 0)) self.remove(key);
       });
 
-      callback();
+      return p;
     };
   }
 
 
-  DomStorage.prototype.exists = function () {
+  DomStorage.exists = function () {
     try {
       localStorage.setItem('__ls_test__', '__ls_test__');
       localStorage.removeItem('__ls_test__');
@@ -196,211 +322,226 @@
     var db;
 
 
-    this.init = function (callback) {
-      db = window.openDatabase(namespace, '1.0', 'bag.js db', 2e5);
+    this.init = function () {
+      return new P(function (resolve, reject) {
+        db = window.openDatabase(namespace, '1.0', 'bag.js db', 2e5);
 
-      if (!db) return callback('Can\'t open webdql database');
-
-      db.transaction(function (tx) {
-        tx.executeSql(
-          'CREATE TABLE IF NOT EXISTS kv (key TEXT PRIMARY KEY, value TEXT, expire INTEGER KEY)',
-          [],
-          function () { callback(); },
-          function (tx, err) { callback(err); }
-        );
-      });
-    };
-
-
-    this.remove = function (key, callback) {
-      callback = callback || _nope;
-      db.transaction(function (tx) {
-        tx.executeSql(
-          'DELETE FROM kv WHERE key = ?',
-          [ key ],
-          function () { callback(); },
-          function (tx, err) { callback(err); }
-        );
-      });
-    };
-
-
-    this.set = function (key, value, expire, callback) {
-      db.transaction(function (tx) {
-        tx.executeSql(
-          'INSERT OR REPLACE INTO kv (key, value, expire) VALUES (?, ?, ?)',
-          [ key, JSON.stringify(value), expire ],
-          function () { callback(); },
-          function (tx, err) { callback(err); }
-        );
-      });
-    };
-
-
-    this.get = function (key, callback) {
-      db.readTransaction(function (tx) {
-        tx.executeSql(
-          'SELECT value FROM kv WHERE key = ?',
-          [ key ],
-          function (tx, result) {
-            if (result.rows.length === 0) {
-              return callback(new Error('key not found: ' + key));
-            }
-            var value = result.rows.item(0).value;
-            var err, data;
-            try {
-              data = JSON.parse(value);
-            } catch (e) {
-              err = new Error('Can\'t unserialise data: ' + value);
-            }
-            callback(err, data);
-          },
-          function (tx, err) { callback(err); }
-        );
-      });
-    };
-
-
-    this.clear = function (expiredOnly, callback) {
-
-      db.transaction(function (tx) {
-        if (expiredOnly) {
-          tx.executeSql(
-            'DELETE FROM kv WHERE expire > 0 AND expire < ?',
-            [ +new Date() ],
-            function () { callback(); },
-            function (tx, err) { callback(err); }
-          );
-        } else {
-          db.transaction(function (tx) {
-            tx.executeSql(
-              'DELETE FROM kv',
-              [],
-              function () { callback(); },
-              function (tx, err) { callback(err); }
-            );
-          });
+        if (!db) {
+          reject("Can't open webdql database");
+          return;
         }
+
+        db.transaction(function (tx) {
+          tx.executeSql(
+            'CREATE TABLE IF NOT EXISTS kv (key TEXT PRIMARY KEY, value TEXT, expire INTEGER KEY)',
+            [],
+            function () { resolve(); },
+            function (tx, err) { reject(err); }
+          );
+        });
+      });
+    };
+
+
+    this.remove = function (key) {
+      return new P(function (resolve, reject) {
+        db.transaction(function (tx) {
+          tx.executeSql(
+            'DELETE FROM kv WHERE key = ?',
+            [ key ],
+            function () { resolve(); },
+            function (tx, err) { reject(err); }
+          );
+        });
+      });
+    };
+
+
+    this.set = function (key, value, expire) {
+      return new P(function (resolve, reject) {
+        db.transaction(function (tx) {
+          tx.executeSql(
+            'INSERT OR REPLACE INTO kv (key, value, expire) VALUES (?, ?, ?)',
+            [ key, JSON.stringify(value), expire ],
+            function () { resolve(); },
+            function (tx, err) { reject(err); }
+          );
+        });
+      });
+    };
+
+
+    this.get = function (key) {
+      return new P(function (resolve, reject) {
+        db.readTransaction(function (tx) {
+          tx.executeSql(
+            'SELECT value FROM kv WHERE key = ?',
+            [ key ],
+            function (tx, result) {
+              if (result.rows.length === 0) {
+                reject(new Error('key not found: ' + key));
+                return;
+              }
+
+              var value = result.rows.item(0).value;
+
+              try {
+                resolve(JSON.parse(value));
+              } catch (e) {
+                reject(new Error('Can\'t unserialise data: ' + value));
+              }
+            },
+            function (tx, err) { reject(err); }
+          );
+        });
+      });
+    };
+
+
+    this.clear = function (expiredOnly) {
+      return new P(function (resolve, reject) {
+        db.transaction(function (tx) {
+          tx.executeSql(
+            expiredOnly ?
+              'DELETE FROM kv WHERE expire > 0 AND expire < ?'
+            :
+              'DELETE FROM kv',
+            expiredOnly ? [ +new Date() ] : [],
+            function () { resolve(); },
+            function (tx, err) { reject(err); }
+          );
+        });
       });
     };
   }
 
 
-  WebSql.prototype.exists = function () {
-    return (!!window.openDatabase);
-  };
+  WebSql.exists = function () { return (!!window.openDatabase); };
 
 
 
   function Idb(namespace) {
     var db;
 
-    this.init = function (callback) {
-      var idb = this.idb = window.indexedDB; /* || window.webkitIndexedDB ||
-                           window.mozIndexedDB || window.msIndexedDB;*/
+    this.init = function () {
+      return new P(function (resolve, reject) {
+        var idb = window.indexedDB;
 
-      var req = idb.open(namespace, 2 /*version*/);
+        var req = idb.open(namespace, 2 /*version*/);
 
-      req.onsuccess = function (e) {
-        db = e.target.result;
-        callback();
-      };
-      req.onblocked = function (e) {
-        callback(new Error('IndexedDB blocked. ' + e.target.errorCode));
-      };
-      req.onerror = function (e) {
-        callback(new Error('IndexedDB opening error. ' + e.target.errorCode));
-      };
-      req.onupgradeneeded = function (e) {
-        db = e.target.result;
+        req.onsuccess = function (e) {
+          db = e.target.result;
+          resolve();
+        };
+        req.onblocked = function (e) {
+          reject(new Error('IndexedDB blocked. ' + e.target.errorCode));
+        };
+        req.onerror = function (e) {
+          reject(new Error('IndexedDB opening error. ' + e.target.errorCode));
+        };
+        req.onupgradeneeded = function (e) {
+          db = e.target.result;
 
-        if (db.objectStoreNames.contains('kv')) db.deleteObjectStore('kv');
+          if (db.objectStoreNames.contains('kv')) db.deleteObjectStore('kv');
 
-        var store = db.createObjectStore('kv', { keyPath: 'key' });
+          var store = db.createObjectStore('kv', { keyPath: 'key' });
 
-        store.createIndex('expire', 'expire', { unique: false });
-      };
+          store.createIndex('expire', 'expire', { unique: false });
+        };
+      });
     };
 
 
-    this.remove = function (key, callback) {
-      var tx = db.transaction('kv', 'readwrite');
+    this.remove = function (key) {
+      return new P(function (resolve, reject) {
+        var tx = db.transaction('kv', 'readwrite');
 
-      tx.oncomplete = function () { callback(); };
-      tx.onerror = tx.onabort = function (e) { callback(new Error('Key remove error: ', e.target)); };
+        tx.oncomplete = function () { resolve(); };
+        tx.onerror = tx.onabort = function (e) { reject(e.target); };
 
-      // IE 8 not allow to use reserved keywords as functions. More info:
-      // http://tiffanybbrown.com/2013/09/10/expected-identifier-bug-in-internet-explorer-8/
-      tx.objectStore('kv')['delete'](key).onerror = function () { tx.abort(); };
+        // IE 8 not allow to use reserved keywords as functions. More info:
+        // http://tiffanybbrown.com/2013/09/10/expected-identifier-bug-in-internet-explorer-8/
+        tx.objectStore('kv')['delete'](key).onerror = function () {
+          tx.abort();
+        };
+      });
     };
 
 
-    this.set = function (key, value, expire, callback) {
-      var tx = db.transaction('kv', 'readwrite');
+    this.set = function (key, value, expire) {
+      return new P(function (resolve, reject) {
+        var tx = db.transaction('kv', 'readwrite');
 
-      tx.oncomplete = function () { callback(); };
-      tx.onerror = tx.onabort = function (e) { callback(new Error('Key set error: ', e.target)); };
+        tx.oncomplete = function () { resolve(); };
+        tx.onerror = tx.onabort = function (e) { reject(e.target); };
 
-      tx.objectStore('kv').put({
-        key: key,
-        value: value,
-        expire: expire
-      }).onerror = function () { tx.abort(); };
+        tx.objectStore('kv').put({
+          key: key,
+          value: value,
+          expire: expire
+        }).onerror = function () { tx.abort(); };
+      });
     };
 
 
-    this.get = function (key, callback) {
-      var err, result;
-      var tx = db.transaction('kv');
+    this.get = function (key) {
+      return new P(function (resolve, reject) {
+        var tx = db.transaction('kv');
 
-      tx.oncomplete = function () { callback(err, result); };
-      tx.onerror = tx.onabort = function (e) { callback(new Error('Key get error: ', e.target)); };
-
-      tx.objectStore('kv').get(key).onsuccess = function (e) {
-        if (e.target.result) result = e.target.result.value;
-        else err = new Error('key not found: ' + key);
-      };
-    };
-
-
-    this.clear = function (expiredOnly, callback) {
-      var keyrange = window.IDBKeyRange; /* ||
-                     window.webkitIDBKeyRange || window.msIDBKeyRange;*/
-      var tx, store;
-
-      tx = db.transaction('kv', 'readwrite');
-      store = tx.objectStore('kv');
-
-      tx.oncomplete = function () { callback(); };
-      tx.onerror = tx.onabort = function (e) { callback(new Error('Clear error: ', e.target)); };
-
-      if (expiredOnly) {
-
-        var cursor = store.index('expire').openCursor(keyrange.bound(1, +new Date()));
-
-        cursor.onsuccess = function (e) {
-          var _cursor = e.target.result;
-          if (_cursor) {
-            // IE 8 not allow to use reserved keywords as functions (`delete` and `continue`). More info:
-            // http://tiffanybbrown.com/2013/09/10/expected-identifier-bug-in-internet-explorer-8/
-            store['delete'](_cursor.primaryKey).onerror = function () { tx.abort(); };
-            _cursor['continue']();
-          }
+        // tx.oncomplete = function () { resolve(result); };
+        tx.onerror = tx.onabort = function (e) {
+          reject(new Error('Key get error: ' + e.target));
         };
 
-      } else {
+        tx.objectStore('kv').get(key).onsuccess = function (e) {
+          if (e.target.result) resolve(e.target.result.value);
+          else reject(new Error('key not found: ' + key));
+        };
+      });
+    };
+
+
+    this.clear = function (expiredOnly) {
+      return new P(function (resolve, reject) {
+        var keyrange = window.IDBKeyRange,
+            tx       = db.transaction('kv', 'readwrite'),
+            store    = tx.objectStore('kv');
+
+        tx = db.transaction('kv', 'readwrite');
+        store = tx.objectStore('kv');
+
+        tx.oncomplete = function () { resolve(); };
+        tx.onerror = tx.onabort = function (e) {
+          reject(new Error('Clear error: ', e.target));
+        };
+
+        if (expiredOnly) {
+          var cursor = store.index('expire').openCursor(keyrange.bound(1, +new Date()));
+
+          cursor.onsuccess = function (e) {
+            var _cursor = e.target.result;
+            if (_cursor) {
+              // IE 8 not allow to use reserved keywords as functions (`delete` and `continue`). More info:
+              // http://tiffanybbrown.com/2013/09/10/expected-identifier-bug-in-internet-explorer-8/
+              store['delete'](_cursor.primaryKey).onerror = function () {
+                tx.abort();
+              };
+              _cursor['continue']();
+            }
+          };
+
+          return;
+        }
+
         // Just clear everything
         tx.objectStore('kv').clear().onerror = function () { tx.abort(); };
-      }
+      });
     };
   }
 
 
-  Idb.prototype.exists = function () {
-    var db =  window.indexedDB /*||
-              window.webkitIndexedDB ||
-              window.mozIndexedDB ||
-              window.msIndexedDB*/;
+  Idb.exists = function () {
+    var db =  window.indexedDB;
 
     if (!db) return false;
 
@@ -431,13 +572,8 @@
   //
   function Storage(namespace, storesList) {
     var self = this;
-
     var db = null;
-
-    // States of db init singletone process
-    // 'done' / 'progress' / 'failed' / undefined
-    var initState;
-    var initStack = [];
+    var init_done = false;
 
     _each(storesList, function (name) {
       // do storage names case insensitive
@@ -447,7 +583,7 @@
         throw new Error('Wrong storage adapter name: ' + name, storesList);
       }
 
-      if (storeAdapters[name].prototype.exists() && !db) {
+      if (storeAdapters[name].exists() && !db) {
         db = new storeAdapters[name](namespace);
         return false; // terminate search on first success
       }
@@ -463,38 +599,33 @@
       /* eslint-enable no-console */
     }
 
-
-    this.init = function (callback) {
-      if (!db) {
-        callback(new Error('No available db'));
-        return;
-      }
-
-      if (initState === 'done') {
-        callback();
-        return;
-      }
-
-      if (initState === 'progress') {
-        initStack.push(callback);
-        return;
-      }
-
-      initStack.push(callback);
-      initState = 'progress';
-
-      db.init(function (err) {
-        initState = !err ? 'done' : 'failed';
-        _each(initStack, function (cb) {
-          cb(err);
+    function createInit() {
+      return P.resolve()
+        .then(function () {
+          if (!db) throw new Error('No available db');
+          return db.init().then(function () {
+            init_done = true;
+            db.clear(true); // clear expired
+          });
         });
-        initStack = [];
+    }
 
-        // Clear expired. A bit dirty without callback,
-        // but we don't care until clear compleete
-        if (!err) self.clear(true);
-      });
+    var _waitInit;
+
+    this.init = function () {
+      if (!_waitInit) _waitInit = createInit();
+      return _waitInit;
     };
+
+
+    function run() { // (method, ...params)
+      var args = Array.prototype.slice.call(arguments, 1),
+          method = arguments[0];
+      return init_done ? db[method].apply(db, args) :
+        self.init().then(function () {
+          return db[method].apply(db, args);
+        });
+    }
 
 
     this.set = function (key, value, expire, callback) {
@@ -502,44 +633,28 @@
         callback = expire;
         expire = null;
       }
-      callback = callback || _nope;
       expire = expire ? +(new Date()) + (expire * 1000) : 0;
 
-      this.init(function (err) {
-        if (err) return callback(err);
-        db.set(key, value, expire, callback);
-      });
+      return promiseOrCallback(run('set', key, value, expire), callback);
     };
 
 
     this.get = function (key, callback) {
-      this.init(function (err) {
-        if (err) return callback(err);
-        db.get(key, callback);
-      });
+      return promiseOrCallback(run('get', key), callback);
     };
 
 
     this.remove = function (key, callback) {
-      callback = callback || _nope;
-      this.init(function (err) {
-        if (err) return callback(err);
-        db.remove(key, callback);
-      });
+      return promiseOrCallback(run('remove', key), callback);
     };
 
 
     this.clear = function (expiredOnly, callback) {
       if (_isFunction(expiredOnly)) {
         callback = expiredOnly;
-        expiredOnly = false;
+        expiredOnly = null;
       }
-      callback = callback || _nope;
-
-      this.init(function (err) {
-        if (err) return callback(err);
-        db.clear(expiredOnly, callback);
-      });
+      return promiseOrCallback(run('clear', expiredOnly), callback);
     };
   }
 
@@ -563,41 +678,41 @@
 
     var storage = null;
 
-    this._queue = [];
-    this._chained = false;
-
-    this._createStorage = function () {
+    function createStorage() {
       if (!storage) storage = new Storage(self.prefix, self.stores);
-    };
+    }
 
-    function getUrl(url, callback) {
-      var xhr = new XMLHttpRequest();
-      xhr.open('GET', url);
-      xhr.onreadystatechange = function () {
-        if (xhr.readyState === 4) {
-          if (xhr.status === 200) {
-            callback(null, {
-              content: xhr.responseText,
-              type: xhr.getResponseHeader('content-type')
-            });
-            callback = _nope;
-          } else {
-            callback(new Error('Can\'t open url ' + url +
-               (xhr.status ? xhr.statusText + ' (' + xhr.status + ')' : '')));
-            callback = _nope;
+    function getUrl(url) {
+      return new P(function (resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', url);
+        xhr.onreadystatechange = function () {
+          if (xhr.readyState === 4) {
+            if (xhr.status === 200) {
+              resolve({
+                content: xhr.responseText,
+                type: xhr.getResponseHeader('content-type')
+              });
+            } else {
+              reject(new Error("Can't open url " + url +
+                 (xhr.status ? xhr.statusText + ' (' + xhr.status + ')' : '')));
+            }
           }
-        }
-      };
+        };
 
-      setTimeout(function () {
-        if (xhr.readyState < 4) {
-          xhr.abort();
-          callback(new Error('Timeout'));
-          callback = _nope;
-        }
-      }, self.timeout * 1000);
+        setTimeout(function () {
+          if (xhr.readyState < 4) {
+            xhr.abort();
+            reject(new Error('Timeout'));
+          }
+        }, self.timeout * 1000);
 
-      xhr.send();
+        try {
+          xhr.send();
+        } catch (err) {
+          reject(err);
+        }
+      });
     }
 
     function createCacheObj(obj, response) {
@@ -608,6 +723,7 @@
       });
 
       var now = +new Date();
+
       cacheObj.data = response.content;
       cacheObj.originalType = response.type;
       cacheObj.type = obj.type || response.type;
@@ -616,24 +732,23 @@
       return cacheObj;
     }
 
-    function saveUrl(obj, callback) {
-      getUrl(obj.url_real, function (err, result) {
-        if (err) return callback(err);
+    function saveUrl(obj) {
+      return getUrl(obj.url_real)
+        .then(function (result) {
+          var delay = (obj.expire || self.expire) * 60 * 60; // in seconds
+          var cached = createCacheObj(obj, result);
 
-        var delay = (obj.expire || self.expire) * 60 * 60; // in seconds
-
-        var cached = createCacheObj(obj, result);
-
-        self.set(obj.key, cached, delay, function () {
-          // Don't check error - have to return data anyway
-          _default(obj, cached);
-          callback(null, obj);
+          return storage.set(obj.key, cached, delay)
+            // Suppress error - have to return data anyway
+            .then(
+              function () { return _default(obj, cached); },
+              function () { return _default(obj, cached); }
+            );
         });
-      });
     }
 
 
-    function isCacheValid(cached, obj) {
+    function isCacheInvalid(cached, obj) {
       return !cached ||
         cached.expire - +new Date() < 0  ||
         obj.unique !== cached.unique ||
@@ -642,54 +757,48 @@
     }
 
 
-    function fetch(obj, callback) {
+    function fetch(obj) {
+      if (!obj.url) return P.resolve();
 
-      if (!obj.url) return callback();
       obj.key = (obj.key || obj.url);
 
-      self.get(obj.key, function (err_cache, cached) {
-
-        // Check error only on forced fetch from cache
-        if (err_cache && obj.cached) {
-          callback(err_cache);
-          return;
-        }
-
-        // if can't get object from store, then just load it from web.
-        obj.execute = (obj.execute !== false);
-        var shouldFetch = !!err_cache || isCacheValid(cached, obj);
-
-        // If don't have to load new date - return one from cache
-        if (!obj.live && !shouldFetch) {
-          obj.type = obj.type || cached.originalType;
-          _default(obj, cached);
-          callback(null, obj);
-          return;
-        }
-
-        // calculate loading url
-        obj.url_real = obj.url;
-        if (obj.unique) {
-          // set parameter to prevent browser cache
-          obj.url_real = obj.url + ((obj.url.indexOf('?') > 0) ? '&' : '?') + 'bag-unique=' + obj.unique;
-        }
-
-        saveUrl(obj, function (err_load) {
-          if (err_cache && err_load) {
-            callback(err_load);
-            return;
+      return storage.get(obj.key)
+        .then(
+          function (cached) { return cached; },
+          function (err) {
+            // Check error only on forced fetch from cache
+            if (err && obj.cached) throw err;
           }
+        )
+        .then(function (cached) {
+          // if can't get object from store, then just load it from web.
+          obj.execute = (obj.execute !== false);
+          var shouldFetch = !cached || isCacheInvalid(cached, obj);
 
-          if (err_load) {
+          // If don't have to load new date - return one from cache
+          if (!obj.live && !shouldFetch) {
             obj.type = obj.type || cached.originalType;
-            _default(obj, cached);
-            callback(null, obj);
-            return;
+            return _default(obj, cached);
           }
 
-          callback(null, obj);
+          // calculate loading url
+          obj.url_real = obj.url;
+          if (obj.unique) {
+            // set parameter to prevent browser cache
+            obj.url_real = obj.url + ((obj.url.indexOf('?') > 0) ? '&' : '?') + 'bag-unique=' + obj.unique;
+          }
+
+          return saveUrl(obj)
+            .then(
+              function () { return obj; },
+              function (err) {
+                if (!cached) throw err;
+
+                obj.type = obj.type || cached.originalType;
+                return _default(obj, cached);
+              }
+            );
         });
-      });
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -719,6 +828,7 @@
         done = true;
         // select matched group of params
         if (!p1) { p1 = p4; p2 = p5; p3 = p6; }
+
         var mapUrl = parse_url(p2);
 
         var scheme = (mapUrl.scheme ? mapUrl.scheme : refUrl.scheme) || window.location.protocol.slice(0, -1);
@@ -805,64 +915,51 @@
     //
 
     this.require = function (resources, callback) {
-      var queue = self._queue;
+      createStorage();
 
-      if (_isFunction(resources)) {
-        callback = resources;
-        resources = null;
-      }
+      return promiseOrCallback(new P(function (resolve, reject) {
+        var result = [], exec_pos = 0,
+            res = _isArray(resources) ? resources : [ resources ];
 
-      if (resources) {
-        var res = _isArray(resources) ? resources : [ resources ];
-
-        // convert string urls to structures
-        // and push to queue
-        _each(res, function (r, i) {
-          if (_isString(r)) res[i] = { url: r };
-          queue.push(res[i]);
-        });
-      }
-
-      self._createStorage();
-
-      if (!callback) {
-        self._chained = true;
-        return self;
-      }
-
-      _asyncEach(queue, fetch, function (err) {
-        if (err) {
-          // cleanup
-          self._chained = false;
-          self._queue = [];
-
-          callback(err);
+        if (!resources) {
+          resolve();
           return;
         }
 
-        _each(queue, function (obj) { if (obj.execute) execute(obj); });
+        _each(res, function (r, i) { result[i] = false; });
 
-        // return content only, if one need fuul info -
-        // check input object, that will be extended.
-        var replies = [];
+        _each(res, function (r, i) {
+          if (_isString(r)) res[i] = { url: r };
 
-        _each(queue, function (r) { replies.push(r.data); });
+          fetch(res[i]).then(function () {
+            // return content only, if one need full info -
+            // check input object, that will be extended.
+            result[i] = res[i].data;
 
-        var result = (_isArray(resources) || self._chained) ? replies : replies[0];
+            var k;
 
-        // cleanup
-        self._chained = false;
-        self._queue = [];
+            for (k = exec_pos; k < result.length; k++) {
+              if (result[k] === false) break;
+              if (res[k].execute) execute(res[k]);
+            }
 
-        callback(null, result);
-      });
+            exec_pos = k;
+
+            if (exec_pos >= res.length) {
+              resolve(_isArray(resources) ? result : result[0]);
+            }
+          }, function (err) {
+            reject(err);
+          });
+        });
+      }), callback);
     };
 
 
     // Create proxy methods (init store then subcall)
     _each([ 'remove', 'get', 'set', 'clear' ], function (method) {
       self[method] = function () {
-        self._createStorage();
+        createStorage();
         storage[method].apply(storage, arguments);
       };
     });

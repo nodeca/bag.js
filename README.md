@@ -17,11 +17,12 @@ Key features are:
 - Parallel load and sequential execution for JS / CSS and other types of files
 - Use IndexedDB / WebSQL / localStorage - no size limits for big assets.
 - KV storage for objects, with simple interface.
-- Callbacks-style interface, like in node.js
+- Supports thenable + callbacks.
 - You can use multiple instances with different storage options. For example
   Indexeddb + WebSQL for assets and localStorage for user settings.
-- 3.2K when minified+gzipped
+- 4.1K when minified+gzipped, no extra dependencies.
 - Partial compatibility with [basket.js](http://addyosmani.github.io/basket.js/).
+- Built-in simple thenable implementation for browsers without promises support.
 
 Install via bower:
 
@@ -73,32 +74,29 @@ var files = [
   { url: '/site.css', expire: 1 },
   { url: '/jquery.js', expire: 10 },
   { url: '/site.js' },
-  { url: '/more_styles.css', expire: 5, execute: false }  
+  { url: '/more_styles.css', expire: 5, execute: false }
 ];
 
-bag.require(files, function(err) {
-  if (err) {
-    console.log('loading error: ', err);
-    return
-  }
-  // code to run after loading
-  // ...
+bag.require(files)
+  .then(function(data) {
+    console.log('loaded', data);
+  })
+  .then(null, function (err) {
+    console.log(err);
+  });
 })
 ```
 
-You can skip `new` keyword. Aslo, you can use chained style - when `require`
-called without callback, info is just remembered in internal stack:
+You can skip `new` keyword. Aslo, you can use callbacks:
 
 ```js
-window.Bag()
-  .require('/site.css')
-  .require('/jquery.js')
-  .require('/site.js')
-  .require(function (err, data) {
-    if (err) { return console.log('loading error: ', err); }
-    // code to run after loading
-    // ...
-  });
+window.Bag().require([ '/site.css', '/site.js'], function (err, data) {
+  if (err) {
+    console.log('loading error: ', err);
+    return;
+  }
+  console.log(data);
+});
 ```
 
 Using as key/value storage:
@@ -107,35 +105,28 @@ Using as key/value storage:
 var obj = { lorem: 'ipsum' };
 var bag = new window.Bag();
 
-bag.set('dolorem', obj, function(err) {
-  if (err) {
-    console.log('Saving error: ', err);
-    return;
-  }
-
-  bag.get('dolorem', function(err, data) {
-    if (err) {
-      console.log('Loading error: ', err);
-      return;
-    }
-
+bag.set('dolorem', obj)
+  .then(function () {
+    return bag.get('dolorem');
+  })
+  .then(function (data) {
     console.log('Loaded data:\n', data);
-
-    bag.remove('dolorem', function(err) {
-      if (err) {
-        console.log('Removing error: ', err);
-        return;
-      }
-
-      console.log('Compleete');
-    }
-  }
-});
+  })
+  .catch(function (err) {
+    console.log(err);
+  })
+  .then(function () {
+    return bag.remove('dolorem');
+  });
 ```
 
 
 API
 ---
+
+__Note__, all methods with optional callbacks will return promises if callback
+not set.
+
 
 ### new Bag([options])
 
@@ -161,7 +152,7 @@ Note 2: `prefix` must be set before `require`/`get`/`set`/`remove`/`clear` calls
 2. Inject known types into page (js/css by default), if execution not disabled.
    When multiple files requested (files are `Array`), those are loaded in
    parallel, but injected in defined order.
-3. Return result in callback.
+3. Also files content is returned in result.
 
 `files` param can be:
 
@@ -191,7 +182,7 @@ Note, if you pass resources info not in short form, input objects are extended
 with loaded data.
 
 
-### .get(key, callback(err, data))
+### .get(key [, callback(err, data)])
 
 Load data by `key` name. Return result via callback:
 
@@ -211,7 +202,7 @@ Put data into storage under `key` name.
   on fail.
 
 
-### .remove(key, callback(err))
+### .remove(key [, callback(err)])
 
 Remove `key` data from store. Call `callback` when compleete. If error happens,
 error info passed in first callback's param.

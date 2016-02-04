@@ -19,7 +19,7 @@ help:
 
 
 lint:
-	./node_modules/.bin/eslint ./
+	./node_modules/.bin/eslint .
 
 test: lint
 	./node_modules/.bin/mocha-browser ./test/test.html --server

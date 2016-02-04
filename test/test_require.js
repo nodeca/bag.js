@@ -1,7 +1,7 @@
 
 describe('require tests', function () {
 
-  var bag = new window.Bag();
+  var bag = new window.Bag({ stores: [ 'localstorage' ] });
 
   beforeEach(function (done) {
     bag.clear(done);
@@ -205,19 +205,5 @@ describe('require tests', function () {
       });
     });
   });
-
-
-  it('require() chaining', function (done) {
-    bag
-      .require('fixtures/require_const.js')
-      .require('fixtures/require_text.txt')
-      .require(function (err, data) {
-
-      assert.notOk(err);
-      assert.strictEqual(data.length, 2);
-      done();
-    });
-  });
-
 
 });
