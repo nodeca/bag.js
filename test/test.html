@@ -7,12 +7,12 @@
   <body>
     <div id="mocha"></div>
     <script src="../node_modules/mocha/mocha.js"></script>
-    <script src="../node_modules/assertive-chai/dist/assertive-chai.js"></script>
+    <script src="../node_modules/proclaim/lib/proclaim.js"></script>
     <script src="../bag.js"></script>
     <script>
       mocha.ui('bdd');
       mocha.reporter('html');
-      assert = chai.assert;
+      assert = proclaim;
     </script>
     <script src="test_localstorage.js"></script>
     <script src="test_indexeddb.js"></script>

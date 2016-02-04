@@ -11,11 +11,13 @@
   "repository": "markdown-it/bag.js",
   "license": "MIT",
   "devDependencies": {
-    "assertive-chai": "^2.0.1",
     "eslint": "2.0.0-rc.0",
     "eslint-plugin-nodeca": "~1.0.3",
     "mocha": "^2.2.5",
     "mocha-browser": "~ 0.2.0",
     "phantomjs": "~ 1.9.7"
+  },
+  "dependencies": {
+    "proclaim": "^3.4.0"
   }
 }

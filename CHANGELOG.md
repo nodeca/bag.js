@@ -3,7 +3,7 @@
 
 - Rewritten to promises. All methods now supports both promisses
   and callbacks.
-- Dropped `.require()` chaining (no used by promises).
+- Dropped `.require()` chaining (now used by promises).
 
 
 1.0.0 / 2016-01-08
