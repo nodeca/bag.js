@@ -1,4 +1,4 @@
-2.0.0 / WIP
+2.0.0 / 2016-02-05
 ------------------
 
 - Rewritten to promises. All methods now supports both promises
