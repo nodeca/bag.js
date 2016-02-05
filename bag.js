@@ -1,7 +1,7 @@
 /*
  * bag.js - js/css/other loader + kv storage
  *
- * Copyright 2013-2014 Vitaly Puzrin
+ * Copyright 2013-2016 Vitaly Puzrin
  * https://github.com/nodeca/bag.js
  *
  * License MIT
