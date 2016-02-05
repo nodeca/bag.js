@@ -960,7 +960,7 @@
     _each([ 'remove', 'get', 'set', 'clear' ], function (method) {
       self[method] = function () {
         createStorage();
-        storage[method].apply(storage, arguments);
+        return storage[method].apply(storage, arguments);
       };
     });
 
