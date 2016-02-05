@@ -2,29 +2,33 @@
 describe('extra tests', function () {
 
 
-  it('use localstorage by priority', function (done) {
-    var b = new window.Bag({ stores: [ 'localstorage', 'websql' ] });
-    b.set('ls_test', 'ls_test', function () {
-      var b1 = new window.Bag({ stores: [ 'localstorage' ] });
-      b1.get('ls_test', function (err, data) {
-        assert.notOk(err);
+  it('use localstorage by priority', function () {
+    var b  = new window.Bag({ stores: [ 'localstorage', 'websql' ] });
+    var b1 = new window.Bag({ stores: [ 'localstorage' ] });
+
+    return b.set('ls_test', 'ls_test')
+      .then(function () {
+        return b1.get('ls_test');
+      })
+      .then(function (data) {
         assert.strictEqual(data, 'ls_test');
-        b.clear(done);
+        return b.clear();
       });
-    });
   });
 
 
-  it('use websql by priority', function (done) {
-    var b = new window.Bag({ stores: [ 'websql', 'localstorage' ] });
-    b.set('wsql_test', 'wsql_test', function () {
-      var b1 = new window.Bag({ stores: [ 'websql' ] });
-      b1.get('wsql_test', function (err, data) {
-        assert.notOk(err);
+  it('use websql by priority', function () {
+    var b  = new window.Bag({ stores: [ 'websql', 'localstorage' ] });
+    var b1 = new window.Bag({ stores: [ 'websql' ] });
+
+    return b.set('wsql_test', 'wsql_test')
+      .then(function () {
+        return b1.get('wsql_test');
+      })
+      .then(function (data) {
         assert.strictEqual(data, 'wsql_test');
-        b.clear(done);
+        return b.clear();
       });
-    });
   });
 
 
@@ -55,15 +59,16 @@ describe('extra tests', function () {
   });
 
 
-  it('test namespace (only for localStorage)', function (done) {
+  it('test namespace (only for localStorage)', function () {
     var b = new window.Bag({ prefix: 'ns', stores: [ 'localstorage' ] });
 
-    b.set('key', 'value', function () {
-      assert.ok(localStorage.ns__key);
-      var val = JSON.parse(localStorage.ns__key).value;
-      assert.strictEqual(val, 'value');
-      b.clear(done);
-    });
+    return b.set('key', 'value')
+      .then(function () {
+        assert.ok(localStorage.ns__key);
+        var val = JSON.parse(localStorage.ns__key).value;
+        assert.strictEqual(val, 'value');
+        return b.clear();
+      });
   });
 
 

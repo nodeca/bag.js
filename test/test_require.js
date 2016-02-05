@@ -3,207 +3,215 @@ describe('require tests', function () {
 
   var bag = new window.Bag({ stores: [ 'localstorage' ] });
 
-  beforeEach(function (done) {
-    bag.clear(done);
+  beforeEach(function () {
+    return bag.clear();
   });
 
-  after(function (done) {
-    bag.clear(done);
-  });
-
-
-  it('require cached fail', function (done) {
-    bag.require({ url: 'fixtures/require_text.txt', cached: true }, function (__, data) {
-      assert.notOk(data);
-      done();
-    });
+  after(function () {
+    return bag.clear();
   });
 
 
-  it('require text', function (done) {
-    bag.require('fixtures/require_text.txt', function (err, data) {
-      assert.notOk(err);
-      assert.strictEqual(data, 'lorem ipsum');
-      done();
-    });
+  it('require cached fail', function () {
+    return bag.require({ url: 'fixtures/require_text.txt', cached: true })
+      .then(null, function (err) {
+        assert.ok(err);
+      });
   });
 
 
-  it('require cached ok', function (done) {
+  it('require text', function () {
+    return bag.require('fixtures/require_text.txt')
+      .then(function (data) {
+        assert.strictEqual(data, 'lorem ipsum');
+      });
+  });
+
+
+  it('require cached ok', function () {
     var url = 'fixtures/require_text.txt';
-    bag.require(url, function () {
+
+    return bag.require(url)
       // hack cache content
-      bag.get(url, function (err, val) {
-        assert.notOk(err);
+      .then(function () {
+        return bag.get(url);
+      })
+      .then(function (val) {
         val.data = 'tandrum aver';
-        bag.set(url, val, function () {
-          // require & make sure data is from cache
-          bag.require({ url: url, cached: true }, function (err, data) {
-            assert.notOk(err);
-            assert.strictEqual(data, 'tandrum aver');
-            done();
-          });
-        });
+        return bag.set(url, val);
+      })
+      .then(function () {
+        // require & make sure data is from cache
+        return bag.require({ url: url, cached: true });
+      })
+      .then(function (data) {
+        assert.strictEqual(data, 'tandrum aver');
       });
-    });
   });
 
 
-  it('inject JS', function (done) {
+  it('inject JS', function () {
     window.test_inc = 0;
-    bag.require('fixtures/require_increment.js', function (err) {
-      assert.notOk(err);
-      assert.strictEqual(window.test_inc, 1);
-      done();
-    });
+
+    return bag.require('fixtures/require_increment.js')
+      .then(function () {
+        assert.strictEqual(window.test_inc, 1);
+      });
   });
 
 
-  it('inject JS from cache', function (done) {
+  it('inject JS from cache', function () {
     window.test_inc = 0;
-    bag.require('fixtures/require_increment.js', function () {
-      bag.require({ url: 'fixtures/require_increment.js', cached: true }, function (err) {
-        assert.notOk(err);
+
+    return bag.require('fixtures/require_increment.js')
+      .then(function () {
+        return bag.require({ url: 'fixtures/require_increment.js', cached: true });
+      })
+      .then(function () {
         assert.strictEqual(window.test_inc, 2);
-        done();
       });
-    });
   });
 
 
-  it('use the same `unique`', function (done) {
+  it('use the same `unique`', function () {
     var url = 'fixtures/require_const.js';
-    bag.require({ url: url, unique: 123 }, function (err) {
-      assert.notOk(err);
-      assert.strictEqual(window.test_const, 5);
+
+    return bag.require({ url: url, unique: 123 })
+      .then(function () {
+        assert.strictEqual(window.test_const, 5);
+      })
       // hack cache content
-      bag.get(url, function (err, val) {
-        assert.notOk(err);
+      .then(function () {
+        return bag.get(url);
+      })
+      .then(function (val) {
         val.data = 'window.test_const = 10;';
-        bag.set(url, val, function () {
-          // now make shure that data fetched from cache
-          bag.require({ url: url, unique: 123 }, function (err) {
-            assert.notOk(err);
-            assert.strictEqual(window.test_const, 10);
-            done();
-          });
-        });
+        return bag.set(url, val);
+      })
+      .then(function () {
+        // now make shure that data fetched from cache
+        return bag.require({ url: url, unique: 123 });
+      })
+      .then(function () {
+        assert.strictEqual(window.test_const, 10);
       });
-    });
   });
 
 
-  it('use different `unique`', function (done) {
+  it('use different `unique`', function () {
     var url = 'fixtures/require_const.js';
-    bag.require({ url: url, unique: 123 }, function (err) {
-      assert.notOk(err);
-      assert.strictEqual(window.test_const, 5);
+
+    return bag.require({ url: url, unique: 123 })
+      .then(function () {
+        assert.strictEqual(window.test_const, 5);
+      })
       // hack cache content
-      bag.get(url, function (err, val) {
-        assert.notOk(err);
+      .then(function () {
+        return bag.get(url);
+      })
+      .then(function (val) {
         val.data = 'window.test_const = 10;';
-        bag.set(url, val, function () {
-          // now make shure that data fetched from server again
-          bag.require({ url: url, unique: 456 }, function (err) {
-            assert.notOk(err);
-            assert.strictEqual(window.test_const, 5);
-            done();
-          });
-        });
+        return bag.set(url, val);
+      })
+      .then(function () {
+        // now make shure that data fetched from server again
+        return bag.require({ url: url, unique: 456 });
+      })
+      .then(function () {
+        assert.strictEqual(window.test_const, 5);
       });
-    });
   });
 
 
-  it('require not existing file', function (done) {
-    bag.require('./not_existing', function (err) {
-      assert.ok(err);
-      done();
-    });
+  it('require not existing file', function () {
+    return bag.require('./not_existing')
+      .then(null, function (err) { assert.ok(err); });
   });
 
 
-  it('use external validator `isValidItem()`', function (done) {
+  it('use external validator `isValidItem()`', function () {
     bag.isValidItem = function () { return false; };
 
     var url = 'fixtures/require_const.js';
-    bag.require(url, function (err) {
-      assert.notOk(err);
-      assert.strictEqual(window.test_const, 5);
+
+    return bag.require(url)
+      .then(function () {
+        assert.strictEqual(window.test_const, 5);
+      })
       // hack cache content
-      bag.get(url, function (err, val) {
-        assert.notOk(err);
+      .then(function () {
+        return bag.get(url);
+      })
+      .then(function (val) {
         val.data = 'window.test_const = 10;';
-        bag.set(url, val, function () {
-          // make shure that data fetched from cache,
-          // because invalidated by external validator
-          bag.require(url, function (err) {
-            assert.notOk(err);
-            assert.strictEqual(window.test_const, 5);
-            done();
-          });
-        });
+        return bag.set(url, val);
+      })
+      .then(function () {
+        // make shure that data fetched from cache,
+        // because invalidated by external validator
+        return bag.require(url);
+      })
+      .then(function () {
+        assert.strictEqual(window.test_const, 5);
       });
-    });
   });
 
 
-  it('test execution order', function (done) {
-    bag.require([ 'fixtures/require_const.js', 'fixtures/require_const2.js' ], function (err) {
-      assert.notOk(err);
-      assert.strictEqual(window.test_const, 100);
-      done();
-    });
+  it('test execution order', function () {
+    return bag.require([ 'fixtures/require_const.js', 'fixtures/require_const2.js' ])
+      .then(function () {
+        assert.strictEqual(window.test_const, 100);
+      });
   });
 
 
-  it('add/replace handler', function (done) {
+  it('add/replace handler', function () {
     var b = new window.Bag();
     var handled = false;
-    b.addHandler('application/javascript', function () {
-      handled = true;
-    });
+    b.addHandler('application/javascript', function () { handled = true; });
 
-    b.require('fixtures/require_const.js', function () {
-      assert.ok(handled);
-      done();
-    });
+    return b.require('fixtures/require_const.js')
+      .then(function () { assert.ok(handled); });
   });
 
 
-  it('remove mime-type handler', function (done) {
+  it('remove mime-type handler', function () {
     var b = new window.Bag();
+
     b.removeHandler('application/javascript');
+
     window.test_const = 0;
 
-    b.require('fixtures/require_const.js', function (err) {
-      assert.notOk(err);
-      assert.strictEqual(window.test_const, 0);
-      done();
-    });
+    return b.require('fixtures/require_const.js')
+      .then(function () {
+        assert.strictEqual(window.test_const, 0);
+      });
   });
 
 
-  it('force bypass cache (`live`=true)', function (done) {
+  it('force bypass cache (`live`=true)', function () {
     var url = 'fixtures/require_const.js';
-    bag.require(url, function (err) {
-      assert.notOk(err);
-      assert.strictEqual(window.test_const, 5);
+
+    return bag.require(url)
+      .then(function () {
+        assert.strictEqual(window.test_const, 5);
+      })
       // hack cache content
-      bag.get(url, function (err, val) {
-        assert.notOk(err);
+      .then(function () {
+        return bag.get(url);
+      })
+      .then(function (val) {
         val.data = 'window.test_const = 10;';
-        bag.set(url, val, function () {
-          // make shure that data fetched from cache,
-          // because invalidated by external validator
-          bag.require({ url: url, live: true }, function (err) {
-            assert.notOk(err);
-            assert.strictEqual(window.test_const, 5);
-            done();
-          });
-        });
+        return bag.set(url, val);
+      })
+      .then(function () {
+        // make shure that data fetched from cache,
+        // because invalidated by external validator
+        return bag.require({ url: url, live: true });
+      })
+      .then(function () {
+        assert.strictEqual(window.test_const, 5);
       });
-    });
   });
 
 });

@@ -9,81 +9,75 @@ describe('localStorage tests', function () {
   var obj = { lorem: 'imsum', dolorem: 'casum' };
   var obj2 = { tratum: 'curem', lafem: 'pendum' };
 
-  before(function (done) {
-    bag.clear(function () { done(); });
+  before(function () {
+    bag.clear();
   });
 
-  after(function (done) {
-    bag.clear(function () { done(); });
-  });
-
-
-  it('key set', function (done) {
-    bag.set(key, obj, function (err) {
-      return done(err);
-    });
+  after(function () {
+    bag.clear();
   });
 
 
-  it('key get', function (done) {
-    bag.get(key, function (err, data) {
-      assert.notOk(err);
-      assert.deepEqual(obj, data);
-      done();
-    });
+  it('key set', function () {
+    return bag.set(key, obj);
   });
 
 
-  it('key update', function (done) {
-    bag.set(key, obj2, function (err) {
-      assert.notOk(err);
-      bag.get(key, function (err, data) {
-        assert.notOk(err);
+  it('key get', function () {
+    return bag.get(key)
+      .then(function (data) {
+        assert.deepEqual(obj, data);
+      });
+  });
+
+
+  it('key update', function () {
+    return bag.set(key, obj2)
+      .then(function () {
+        return bag.get(key);
+      })
+      .then(function (data) {
         assert.deepEqual(obj2, data);
-        done();
       });
-    });
   });
 
 
-  it('key remove', function (done) {
-    bag.remove(key, function (err) {
-      assert.notOk(err);
-      bag.get(key, function (err, data) {
+  it('key remove', function () {
+    return bag.remove(key)
+      .then(function () {
+        return bag.get(key);
+      })
+      .then(null, function (err) {
         assert.ok(err);
-        assert.notOk(data);
-        done();
       });
-    });
   });
 
 
-  it('persistance', function (done) {
-    bag.set(key, obj, function (err) {
-      assert.notOk(err);
-      bag.clear(true, function (err) {
-        assert.notOk(err);
-        bag.get(key, function (err, data) {
-          assert.notOk(err);
-          assert.deepEqual(obj, data);
-          done();
-        });
+  it('persistance', function () {
+    return bag.set(key, obj)
+      .then(function () {
+        return bag.clear(true);
+      })
+      .then(function () {
+        return bag.get(key);
+      })
+      .then(function (data) {
+        assert.deepEqual(obj, data);
       });
-    });
   });
 
 
-  it('clear', function (done) {
-    bag.set(key, obj, function (err) {
-      assert.notOk(err);
-      bag.clear(function (err) {
-        assert.notOk(err);
-        bag.get(key, function (err) {
-          assert.ok(err);
-          done();
-        });
+  it('clear', function () {
+    return bag.set(key, obj)
+      .then(function () {
+        return bag.clear();
+      })
+      .then(function () {
+        return bag.get(key);
+      })
+      .then(null, function (err) {
+        assert.ok(err);
       });
-    });
   });
 
 
