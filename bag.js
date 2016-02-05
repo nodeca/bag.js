@@ -267,7 +267,13 @@
     this.get = function (key, raw) {
       return new P(function (resolve, reject) {
         try {
-          var data = JSON.parse(localStorage.getItem(_ns + key));
+          var data = localStorage.getItem(_ns + key);
+
+          // return `undefined` for missed keys
+          if (data === null) return resolve();
+
+          data = JSON.parse(localStorage.getItem(_ns + key));
+
           resolve(data = raw ? data : data.value);
         } catch (e) {
           reject(new Error("Can't read key: " + key));
@@ -378,17 +384,15 @@
             'SELECT value FROM kv WHERE key = ?',
             [ key ],
             function (tx, result) {
-              if (result.rows.length === 0) {
-                reject(new Error('key not found: ' + key));
-                return;
-              }
+              // return `undefined` for missed keys
+              if (result.rows.length === 0) return resolve();
 
               var value = result.rows.item(0).value;
 
               try {
                 resolve(JSON.parse(value));
               } catch (e) {
-                reject(new Error('Can\'t unserialise data: ' + value));
+                reject(new Error("Can't unserialise data: " + value));
               }
             },
             function (tx, err) { reject(err); }
@@ -495,7 +499,7 @@
 
         tx.objectStore('kv').get(key).onsuccess = function (e) {
           if (e.target.result) resolve(e.target.result.value);
-          else reject(new Error('key not found: ' + key));
+          else resolve();
         };
       });
     };
@@ -763,14 +767,9 @@
       obj.key = (obj.key || obj.url);
 
       return storage.get(obj.key)
-        .then(
-          function (cached) { return cached; },
-          function (err) {
-            // Check error only on forced fetch from cache
-            if (err && obj.cached) throw err;
-          }
-        )
         .then(function (cached) {
+          if (!cached && obj.cached) throw new Error('Cache not exists');
+
           // if can't get object from store, then just load it from web.
           obj.execute = (obj.execute !== false);
           var shouldFetch = !cached || isCacheInvalid(cached, obj);

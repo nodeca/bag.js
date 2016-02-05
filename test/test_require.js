@@ -14,9 +14,9 @@ describe('require tests', function () {
 
   it('require cached fail', function () {
     return bag.require({ url: 'fixtures/require_text.txt', cached: true })
-      .then(null, function (err) {
-        assert.ok(err);
-      });
+      .then(
+        function () { throw new Error('This should fail'); },
+        function (err) { assert.ok(err); });
   });
 
 

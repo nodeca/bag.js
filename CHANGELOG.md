@@ -3,6 +3,7 @@
 
 - Rewritten to promises. All methods now supports both promises
   and callbacks.
+- `.get()` now returns `undefined` for mossed keys instead of error.
 - Dropped `.require()` chaining (now used by promises).
 
 

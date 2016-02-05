@@ -47,8 +47,8 @@ describe('WebSQL tests', function () {
       .then(function () {
         return bag.get(key);
       })
-      .then(null, function (err) {
-        assert.ok(err);
+      .then(function (val) {
+        assert.isUndefined(val);
       });
   });
 
@@ -75,8 +75,8 @@ describe('WebSQL tests', function () {
       .then(function () {
         return bag.get(key);
       })
-      .then(null, function (err) {
-        assert.ok(err);
+      .then(function (val) {
+        assert.isUndefined(val);
       });
   });
 
@@ -104,8 +104,9 @@ describe('WebSQL tests', function () {
       setTimeout(function () {
         bag.clear(true, function (err) {
           assert.notOk(err);
-          bag.get(key, function (err) {
-            assert.ok(err);
+          bag.get(key, function (err, data) {
+            assert.notOk(err);
+            assert.isUndefined(data);
             done();
           });
         });

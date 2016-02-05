@@ -46,10 +46,13 @@ describe('extra tests', function () {
         b.set('huge', huge, function (err) {
           assert.ok(err);
 
-          b.get('tmp', function (err) {
-            assert.ok(err);
-            b.get('permanent', function (err) {
-              assert.ok(err);
+          b.get('tmp', function (err, val) {
+            assert.notOk(err);
+            assert.isUndefined(val);
+
+            b.get('permanent', function (err, val) {
+              assert.notOk(err);
+              assert.isUndefined(val);
               b.clear(done);
             });
           });
