@@ -12,6 +12,8 @@
     <script>
       mocha.ui('bdd');
       mocha.reporter('html');
+      // Increase timeout (for IE indexeddb tests)
+      mocha.setup({ timeout: 5000 });
       assert = proclaim;
     </script>
     <script src="test_localstorage.js"></script>
