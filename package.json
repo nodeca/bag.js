@@ -12,10 +12,9 @@
   "license": "MIT",
   "devDependencies": {
     "eslint": "2.0.0-rc.0",
-    "eslint-plugin-nodeca": "~1.0.3",
     "mocha": "^2.2.5",
     "mocha-browser": "~ 0.2.0",
-    "phantomjs": "~ 1.9.7",
+    "phantomjs": "~ 1.9.19",
     "proclaim": "^3.4.0"
   }
 }
