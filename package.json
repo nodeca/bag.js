@@ -8,7 +8,7 @@
     "bag.js"
   ],
   "main": "bag.js",
-  "repository": "markdown-it/bag.js",
+  "repository": "nodeca/bag.js",
   "license": "MIT",
   "devDependencies": {
     "eslint": "2.0.0-rc.0",
