@@ -1,6 +1,6 @@
 {
   "name": "bagjs",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "scripts": {
     "lint": "./node_modules/.bin/eslint .",
     "test": "npm run lint && ./node_modules/.bin/mocha-browser ./test/test.html --server"
