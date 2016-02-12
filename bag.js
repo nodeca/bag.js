@@ -767,6 +767,8 @@
       obj.key = (obj.key || obj.url);
 
       return storage.get(obj.key)
+        // Suppress error, we can get it in private mode (Firefox)
+        .then(function (data) { return data; }, function () { return null; })
         .then(function (cached) {
           if (!cached && obj.cached) throw new Error('Cache not exists');
 

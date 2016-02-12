@@ -1,3 +1,9 @@
+2.0.2 / 2016-02-13
+------------------
+
+- Fixed loading errors due indexeddb limitations in firefox private mode.
+
+
 2.0.1 / 2016-02-11
 ------------------
 
