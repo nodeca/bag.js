@@ -4,11 +4,12 @@ bag.js - JS / CSS loader + KV storage
 [![Build Status](https://travis-ci.org/nodeca/bag.js.svg?branch=master)](https://travis-ci.org/nodeca/bag.js)
 [![NPM version](https://img.shields.io/npm/v/bagjs.svg?style=flat)](https://www.npmjs.org/package/bagjs)
 
-__bag.js__ is loader for `.js` / `.css` and other files, that uses browser
-stores for caching. Consider it as alternative for other types of loaders for
-modern browsers, that reduce number of server requests, especially for mobile
-devices. Also __bag.js__  can be used as simple key/value storage, that doesn't
-require you to know details about IndexedDB and WebSQL.
+> __bag.js__ is loader for `.js` / `.css` and other files, that uses
+IndexedDB/ WebSQL / localStorage for caching. Consider it as alternative for
+other types of loaders for modern browsers, that reduce number of server
+requests, especially for mobile devices. Also __bag.js__  can be used as simple
+key/value storage, that doesn't require you to know details about IndexedDB
+and WebSQL.
 
 This project is inspired by __[basket.js](http://addyosmani.github.io/basket.js/)__,
 but provides more safe storages for big assets and universal key/value interface.
@@ -50,12 +51,11 @@ Simple:
 var bag = new window.Bag();
 
 bag.require(['/site.css', '/jquery.js', '/site.js'])
-  .then(function () {
+  .then(() => {
     // code to run after loading
     // ...
-  }, function (err) {
-    console.log('loading error: ', err);
-  });
+  })
+  .catch(err => console.log('loading error: ', err));
 ```
 
 Advanced:
@@ -80,12 +80,10 @@ var files = [
 ];
 
 bag.require(files)
-  .then(function(data) {
+  .then(data => {
     console.log('loaded', data);
   })
-  .then(null, function (err) {
-    console.log(err);
-  });
+  .catch(err => console.log(err));
 })
 ```
 
@@ -93,11 +91,10 @@ You can skip `new` keyword. Also, you can use callbacks:
 
 ```js
 window.Bag().require([ '/site.css', '/site.js']
-  .then(function (data) {
+  .then(data => {
     console.log(data);
-  }, function (err) {
-    console.log('loading error: ', err);
-  });
+  })
+  .catch(err => console.log(err));
 ```
 
 Using as key/value storage:
@@ -107,18 +104,10 @@ var obj = { lorem: 'ipsum' };
 var bag = new window.Bag();
 
 bag.set('dolorem', obj)
-  .then(function () {
-    return bag.get('dolorem');
-  })
-  .then(function (data) {
-    console.log('Loaded data:\n', data);
-  })
-  .catch(function (err) {
-    console.log(err);
-  })
-  .then(function () {
-    return bag.remove('dolorem');
-  });
+  .then(() => bag.get('dolorem'));
+  .then(data => console.log('Loaded data:\n', data));
+  .catch(err => console.log(err));
+  .then(() => bag.remove('dolorem'));
 ```
 
 
@@ -196,8 +185,6 @@ Put data into storage under `key` name.
 - `data` - JS object to store. We currently support only objects, serializable
   by JSON. Don't try to put functions or arraybuffers.
 - `expire` - Expiration time in seconds. Don't expire by default.
-- `callback(err)` - Function to call when complete. `err` contains error
-  on fail.
 
 
 ### .remove(key) -> Promise
