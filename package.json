@@ -12,10 +12,11 @@
   "repository": "nodeca/bag.js",
   "license": "MIT",
   "devDependencies": {
-    "eslint": "2.0.0-rc.0",
-    "mocha": "^2.2.5",
+    "eslint": "^3.9.1",
+    "lie": "^3.1.0",
+    "mocha": "^3.1.2",
     "mocha-browser": "~ 0.2.0",
-    "phantomjs": "~ 1.9.19",
+    "phantomjs": "~ 1.9.20",
     "proclaim": "^3.4.0"
   }
 }
