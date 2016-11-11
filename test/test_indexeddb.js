@@ -90,37 +90,32 @@ describe('IndexedDB tests', function () {
   });
 
 
-  it('keep not expired', function (done) {
-    bag.set(key, obj, 1, function (err) {
-      assert.notOk(err);
-      setTimeout(function () {
-        bag.clear(true, function (err) {
-          assert.notOk(err);
-          bag.get(key, function (err, data) {
-            assert.notOk(err);
-            assert.deepEqual(obj, data);
-            done();
-          });
-        });
-      }, 10);
+  function pTimeout(ms) {
+    return new Promise(function (resolve) {
+      setTimeout(resolve, ms);
     });
+  }
+
+
+  it('keep not expired', function () {
+    return bag.set(key, obj, 1)
+      .then(function () { return pTimeout(10); })
+      .then(function () { return bag.clear(true); })
+      .then(function () { return bag.get(key); })
+      .then(function (data) {
+        assert.deepEqual(obj, data);
+      });
   });
 
 
-  it('clear expired', function (done) {
-    bag.set(key, obj, 0.005, function (err) {
-      assert.notOk(err);
-      setTimeout(function () {
-        bag.clear(true, function (err) {
-          assert.notOk(err);
-          bag.get(key, function (err, data) {
-            assert.notOk(err);
-            assert.isUndefined(data);
-            done();
-          });
-        });
-      }, 10);
-    });
+  it('clear expired', function () {
+    return bag.set(key, obj, 0.005)
+      .then(function () { return pTimeout(10); })
+      .then(function () { return bag.clear(true); })
+      .then(function () { return bag.get(key); })
+      .then(function (data) {
+        assert.isUndefined(data);
+      });
   });
 
 });

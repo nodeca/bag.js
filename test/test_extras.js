@@ -32,33 +32,34 @@ describe('extra tests', function () {
   });
 
 
-  it('reset localstorage (namespace) when quota exceeded (2.5-5Mb)', function (done) {
+  it('reset localstorage (namespace) when quota exceeded (2.5-5Mb)', function () {
     var b = new window.Bag({ stores: [ 'localstorage' ] });
 
     // create big data (>5mb in json)
     var huge = new Array(1000000);
     for (var i = 0, l = huge.length; i < l; i++) huge[i] = '1234567890';
 
-    b.set('permanent', 'permanent', function (err) {
-      assert.notOk(err);
-      b.set('tmp', 'tmp', 15, function (err) {
-        assert.notOk(err);
-        b.set('huge', huge, function (err) {
-          assert.ok(err);
+    return b.set('permanent', 'permanent')
+      .then(function () {
+        return b.set('tmp', 'tmp', 15);
+      })
+      .then(function () {
+        return b.set('huge', huge);
+      })
+      .then(function () {
+        throw new Error('Set hude data should fail');
+      }, function () {
+        return b.get('tmp');
+      })
+      .then(function (val) {
+        assert.isUndefined(val);
 
-          b.get('tmp', function (err, val) {
-            assert.notOk(err);
-            assert.isUndefined(val);
-
-            b.get('permanent', function (err, val) {
-              assert.notOk(err);
-              assert.isUndefined(val);
-              b.clear(done);
-            });
-          });
-        });
+        return b.get('permanent');
+      })
+      .then(function (val) {
+        assert.isUndefined(val);
+        return b.clear();
       });
-    });
   });
 
 

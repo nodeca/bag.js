@@ -5,6 +5,7 @@ globals:
   before: false
   beforeEach: false
   after: false
+  Promise: false
 
 rules:
   strict: 0
