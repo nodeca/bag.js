@@ -17,20 +17,24 @@ Key features are:
 - Parallel load and sequential execution for JS / CSS and other types of files
 - Use IndexedDB / WebSQL / localStorage - no size limits for big assets.
 - KV storage for objects, with simple interface.
-- Supports thenable + callbacks.
 - You can use multiple instances with different storage options. For example
   Indexeddb + WebSQL for assets and localStorage for user settings.
-- 4.1K when minified+gzipped, no extra dependencies.
 - Partial compatibility with [basket.js](http://addyosmani.github.io/basket.js/).
-- Built-in simple thenable implementation for browsers without promises support.
 
-Install via bower:
+__Requirements:__
+
+This package requires Promise polyfill for old browsers. We recommend
+__[lie](https://github.com/calvinmetcalf/lie)__, it's small enougth and fast.
+
+__Install__
+
+via bower:
 
 ```bash
 bower install bag.js
 ```
 
-Install via npm:
+via npm:
 
 ```bash
 bower install bagjs --save
@@ -45,15 +49,13 @@ Simple:
 ```js
 var bag = new window.Bag();
 
-bag.require(['/site.css', '/jquery.js', '/site.js'], function (err) {
-  if (err) {
+bag.require(['/site.css', '/jquery.js', '/site.js'])
+  .then(function () {
+    // code to run after loading
+    // ...
+  }, function (err) {
     console.log('loading error: ', err);
-    return
-  }
-  // code to run after loading
-  // ...
-})
-
+  });
 ```
 
 Advanced:
@@ -90,13 +92,12 @@ bag.require(files)
 You can skip `new` keyword. Also, you can use callbacks:
 
 ```js
-window.Bag().require([ '/site.css', '/site.js'], function (err, data) {
-  if (err) {
+window.Bag().require([ '/site.css', '/site.js']
+  .then(function (data) {
+    console.log(data);
+  }, function (err) {
     console.log('loading error: ', err);
-    return;
-  }
-  console.log(data);
-});
+  });
 ```
 
 Using as key/value storage:
@@ -146,7 +147,7 @@ Note 1: you can skip `new` keyword, calling `Bag()` will return you new instance
 Note 2: `prefix` must be set before `require`/`get`/`set`/`remove`/`clear` calls. Other options can be changed anytime.
 
 
-### .require(files [, callback(err, data)])
+### .require(files) -> Promise
 
 1. Load files from server or from cache.
 2. Inject known types into page (js/css by default), unless execution is disabled.
@@ -171,26 +172,23 @@ resource info:
 - `live` - force cache bypass, for development needs.
 - `cached` - force request from cache only.
 
-callback params:
+result (Promise):
 
-- `err` - error info if loading failed
-- `data` - (Array|String) with loaded content, depending on `files` type. If
+- (Array|String) with loaded content, depending on `files` type. If
   a single resource is requested (`Object`|`String`), `data` is `String`. If
-  an `Array` of resources is requested, or chained call done, data is array of strings.
+  an `Array` of resources is requested, or chained call done, data is array
+  of strings.
 
 Note, unless you pass resources info in short form, input objects are extended
 with loaded data.
 
 
-### .get(key [, callback(err, data)])
+### .get(key) -> Promise
 
-Load data by `key` name. Return result via callback:
-
-- `err` - error info on fail, null on success
-- `data` - loaded object, `undefined` if not exists.
+Load data by `key` name. Not existing values are returned as `undefined`.
 
 
-### .set(key, data [, expire] [, callback(err)])
+### .set(key, data [, expire]) -> Promise
 
 Put data into storage under `key` name.
 
@@ -202,16 +200,15 @@ Put data into storage under `key` name.
   on fail.
 
 
-### .remove(key [, callback(err)])
+### .remove(key) -> Promise
 
-Remove `key` data from store. Call `callback` when complete. If error happens,
-error info passed in first callback's param.
+Remove `key` data from store.
 
 
-### .clear([expiredOnly] [, callback(err)])
+### .clear([expiredOnly]) -> Promise
 
 Clear all storage data (in your namespace), or just expired objects when called
-as `bag.clear(true, ...)`. Callback is optional.
+as `bag.clear(true)`.
 
 
 ### .addHandler(types, handler)

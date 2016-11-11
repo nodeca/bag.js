@@ -27,14 +27,8 @@
   //////////////////////////////////////////////////////////////////////////////
   // helpers
 
-  function _class(obj) { return Object.prototype.toString.call(obj); }
-
-  function _isString(obj) { return _class(obj) === '[object String]'; }
-
-  function _isFunction(obj) { return _class(obj) === '[object Function]'; }
-
   var _isArray = Array.isArray || function isArray(obj) {
-    return _class(obj) === '[object Array]';
+    return Object.prototype.toString.call(obj) === '[object Array]';
   };
 
 
@@ -58,163 +52,9 @@
     return obj;
   }
 
-  function promiseOrCallback(promise, cb) {
-    if (!cb) return promise;
-
-    var called = false;
-
-    promise.then(
-      function (data) {
-        setTimeout(function () {
-          if (!called) {
-            called = true;
-            cb(null, data);
-          }
-        }, 0);
-      },
-      function (err) {
-        setTimeout(function () {
-          if (!called) {
-            called = true;
-            cb(err);
-          }
-        }, 0);
-      }
-    );
-  }
-
   //////////////////////////////////////////////////////////////////////////////
 
-  // Simple thenable implementation. Originally by @medikoo
-  // https://github.com/medikoo/plain-promise
-  // Modified to use ES3 only :)
-
-  /*eslint-disable func-style*/
-  var PP = function (executor) {
-    var self = this;
-
-    this._callbacks = [];
-
-    executor(
-      function (v) { self._resolve(v); },
-      function (v) { self._reject(v); }
-    );
-  };
-
-  PP.resolve = function (value) {
-    return new PP(function (resolve) { resolve(value); });
-  };
-
-  PP.reject = function (error) {
-    return new PP(function (resolve, reject) { reject(error); });
-  };
-
-  PP.cast = function (value) {
-    if (value instanceof PP) return value;
-    return PP.resolve(value);
-  };
-
-  PP.prototype = {
-    constructor: PP,
-
-    // Private properties and methods:
-    _failed: false,
-    _resolved: false,
-    _settled: false,
-    _release: function (onSuccess, onFail) {
-      /*eslint-disable no-lonely-if*/
-      if (this._failed) {
-        if (typeof onFail === 'function') onFail(this._value);
-        else throw this._value;
-      } else {
-        if (typeof onSuccess === 'function') onSuccess(this._value);
-      }
-    },
-    _resolve: function (value) {
-      if (this._resolved) return;
-      this._resolved = true;
-
-      var self = this;
-
-      if (value instanceof PP) {
-        value.done(function (v) {
-          self._settle(v);
-        }, function (error) {
-          self._failed = true;
-          self._settle(error);
-        });
-      } else {
-        this._settle(value);
-      }
-    },
-    _reject: function (value) {
-      if (this._resolved) return;
-      this._resolved = true;
-      this._failed = true;
-      this._settle(value);
-    },
-    _settle: function (value) {
-      this._settled = true;
-      this._value = value;
-
-      var self = this;
-      // Do not release before `resolve` or `reject` returns
-      setTimeout(function () {
-        _each(self._callbacks, function (data) {
-          self._release(data.onSuccess, data.onFail);
-        });
-      }, 0);
-    },
-
-    // Public API:
-    // Warning: Some implementations do not provide `done`
-    done: function (onSuccess, onFail) {
-      var self = this;
-
-      if (this._settled) {
-        // Do not release before `done` returns
-        setTimeout(function () { self._release(onSuccess, onFail); }, 0);
-      } else {
-        this._callbacks.push({ onSuccess: onSuccess, onFail: onFail });
-      }
-    },
-    then: function (onSuccess, onFail) {
-      var self = this;
-
-      return new PP(function (resolve, reject) {
-        self.done(function (value) {
-          if (typeof onSuccess === 'function') {
-            try {
-              value = onSuccess(value);
-            } catch (e) {
-              reject(e);
-              return;
-            }
-          }
-          resolve(value);
-        }, function (value) {
-          if (typeof onFail === 'function') {
-            try {
-              value = onFail(value);
-            } catch (e) {
-              reject(e);
-              return;
-            }
-            resolve(value);
-          } else {
-            reject(value);
-          }
-        });
-      });
-    },
-    'catch': function (onFail) {
-      return this.then(null, onFail);
-    }
-  };
-
-
-
-  var P = window.Promise || PP;
+  var P = window.Promise;
 
 
   //////////////////////////////////////////////////////////////////////////////
@@ -575,9 +415,8 @@
   // storesList - array of allowed adapter names to use
   //
   function Storage(namespace, storesList) {
-    var self = this;
     var db = null;
-    var init_done = false;
+    // var init_done = false;
 
     _each(storesList, function (name) {
       // do storage names case insensitive
@@ -608,7 +447,7 @@
         .then(function () {
           if (!db) throw new Error('No available db');
           return db.init().then(function () {
-            init_done = true;
+            // init_done = true;
             db.clear(true); // clear expired
           });
         });
@@ -622,43 +461,25 @@
     };
 
 
-    function run() { // (method, ...params)
-      var args = Array.prototype.slice.call(arguments, 1),
-          method = arguments[0];
-      return init_done ? db[method].apply(db, args) :
-        self.init().then(function () {
-          return db[method].apply(db, args);
-        });
-    }
-
-
-    this.set = function (key, value, expire, callback) {
-      if (_isFunction(expire)) {
-        callback = expire;
-        expire = null;
-      }
-      expire = expire ? +(new Date()) + (expire * 1000) : 0;
-
-      return promiseOrCallback(run('set', key, value, expire), callback);
+    this.set = function (key, value, expire) {
+      return this.init().then(function () {
+        return db.set(key, value, expire ? +(new Date()) + (expire * 1000) : 0);
+      });
     };
 
 
-    this.get = function (key, callback) {
-      return promiseOrCallback(run('get', key), callback);
+    this.get = function (key) {
+      return this.init().then(function () { return db.get(key); });
     };
 
 
-    this.remove = function (key, callback) {
-      return promiseOrCallback(run('remove', key), callback);
+    this.remove = function (key) {
+      return this.init().then(function () { return db.remove(key); });
     };
 
 
-    this.clear = function (expiredOnly, callback) {
-      if (_isFunction(expiredOnly)) {
-        callback = expiredOnly;
-        expiredOnly = null;
-      }
-      return promiseOrCallback(run('clear', expiredOnly), callback);
+    this.clear = function (expiredOnly) {
+      return this.init().then(function () { return db.clear(expiredOnly); });
     };
   }
 
@@ -915,10 +736,10 @@
     // Public methods
     //
 
-    this.require = function (resources, callback) {
+    this.require = function (resources) {
       createStorage();
 
-      return promiseOrCallback(new P(function (resolve, reject) {
+      return new P(function (resolve, reject) {
         var result = [], exec_pos = 0,
             res = _isArray(resources) ? resources : [ resources ];
 
@@ -930,7 +751,7 @@
         _each(res, function (r, i) { result[i] = false; });
 
         _each(res, function (r, i) {
-          if (_isString(r)) res[i] = { url: r };
+          if (typeof r === 'string') res[i] = { url: r };
 
           fetch(res[i]).then(function () {
             // return content only, if one need full info -
@@ -953,7 +774,7 @@
             reject(err);
           });
         });
-      }), callback);
+      });
     };
 
 

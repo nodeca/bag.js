@@ -1,3 +1,10 @@
+3.0.0 / WIP
+------------------
+
+- Removed callbacks support.
+- Now require separate promise polyfill for old browsers.
+
+
 2.0.2 / 2016-02-13
 ------------------
 
