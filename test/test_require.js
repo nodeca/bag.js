@@ -89,7 +89,7 @@ describe('require tests', function () {
         return bag.set(url, val);
       })
       .then(function () {
-        // now make shure that data fetched from cache
+        // now make sure that data fetched from cache
         return bag.require({ url: url, unique: 123 });
       })
       .then(function () {
@@ -114,7 +114,7 @@ describe('require tests', function () {
         return bag.set(url, val);
       })
       .then(function () {
-        // now make shure that data fetched from server again
+        // now make sure that data fetched from server again
         return bag.require({ url: url, unique: 456 });
       })
       .then(function () {
@@ -147,7 +147,7 @@ describe('require tests', function () {
         return bag.set(url, val);
       })
       .then(function () {
-        // make shure that data fetched from cache,
+        // make sure that data fetched from cache,
         // because invalidated by external validator
         return bag.require(url);
       })
@@ -205,7 +205,7 @@ describe('require tests', function () {
         return bag.set(url, val);
       })
       .then(function () {
-        // make shure that data fetched from cache,
+        // make sure that data fetched from cache,
         // because invalidated by external validator
         return bag.require({ url: url, live: true });
       })
