@@ -1,4 +1,11 @@
-3.0.0 / WIP
+4.0.0 / WIP
+------------------
+
+- Drop ancient browsers (before IE9) support.
+
+
+
+3.0.0 / 2016-11-12
 ------------------
 
 - Removed callbacks support.

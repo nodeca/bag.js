@@ -27,34 +27,13 @@
   //////////////////////////////////////////////////////////////////////////////
   // helpers
 
-  var _isArray = Array.isArray || function isArray(obj) {
-    return Object.prototype.toString.call(obj) === '[object Array]';
-  };
-
-
-  function _each(obj, iterator) {
-    if (_isArray(obj)) {
-      if (obj.forEach) return obj.forEach(iterator);
-
-      for (var i = 0; i < obj.length; i++) iterator(obj[i], i, obj);
-    } else {
-      for (var k in obj) {
-        if (Object.prototype.hasOwnProperty.call(obj, k)) iterator(obj[k], k);
-      }
-    }
-  }
-
   function _default(obj, src) {
     // extend obj with src properties if not exists;
-    _each(src, function (val, key) {
-      if (!obj[key]) obj[key] = src[key];
+    Object.keys(src).forEach(function (key) {
+      if (!Object.prototype.hasOwnProperty.call(obj, key)) obj[key] = src[key];
     });
     return obj;
   }
-
-  //////////////////////////////////////////////////////////////////////////////
-
-  var P = window.Promise;
 
 
   //////////////////////////////////////////////////////////////////////////////
@@ -64,11 +43,11 @@
     var self = this;
     var _ns = namespace + '__';
 
-    this.init = function () { return P.resolve(); };
+    this.init = function () { return Promise.resolve(); };
 
     this.remove = function (key) {
       localStorage.removeItem(_ns + key);
-      return P.resolve();
+      return Promise.resolve();
     };
 
 
@@ -78,7 +57,7 @@
         expire: expire
       };
 
-      return new P(function (resolve, reject) {
+      return new Promise(function (resolve, reject) {
         try {
           localStorage.setItem(_ns + key, JSON.stringify(obj));
           resolve();
@@ -87,7 +66,7 @@
           // Just remove all keys, without conditions, no optimizations needed.
           if (e.name.toUpperCase().indexOf('QUOTA') >= 0) {
             try {
-              _each(localStorage, function (val, name) {
+              Object.keys(localStorage).forEach(function (name) {
                 var k = name.split(_ns)[1];
                 if (k) { self.remove(k); }
               });
@@ -105,7 +84,7 @@
 
 
     this.get = function (key, raw) {
-      return new P(function (resolve, reject) {
+      return new Promise(function (resolve, reject) {
         try {
           var data = localStorage.getItem(_ns + key);
 
@@ -124,9 +103,9 @@
 
     this.clear = function (expiredOnly) {
       var now = +new Date();
-      var p = P.resolve();
+      var p = Promise.resolve();
 
-      _each(localStorage, function (val, name) {
+      Object.keys(localStorage).forEach(function (name) {
         var key = name.split(_ns)[1];
 
         if (!key) return;
@@ -169,7 +148,7 @@
 
 
     this.init = function () {
-      return new P(function (resolve, reject) {
+      return new Promise(function (resolve, reject) {
         db = window.openDatabase(namespace, '1.0', 'bag.js db', 2e5);
 
         if (!db) {
@@ -190,7 +169,7 @@
 
 
     this.remove = function (key) {
-      return new P(function (resolve, reject) {
+      return new Promise(function (resolve, reject) {
         db.transaction(function (tx) {
           tx.executeSql(
             'DELETE FROM kv WHERE key = ?',
@@ -204,7 +183,7 @@
 
 
     this.set = function (key, value, expire) {
-      return new P(function (resolve, reject) {
+      return new Promise(function (resolve, reject) {
         db.transaction(function (tx) {
           tx.executeSql(
             'INSERT OR REPLACE INTO kv (key, value, expire) VALUES (?, ?, ?)',
@@ -218,7 +197,7 @@
 
 
     this.get = function (key) {
-      return new P(function (resolve, reject) {
+      return new Promise(function (resolve, reject) {
         db.readTransaction(function (tx) {
           tx.executeSql(
             'SELECT value FROM kv WHERE key = ?',
@@ -243,7 +222,7 @@
 
 
     this.clear = function (expiredOnly) {
-      return new P(function (resolve, reject) {
+      return new Promise(function (resolve, reject) {
         db.transaction(function (tx) {
           tx.executeSql(
             expiredOnly ?
@@ -268,7 +247,7 @@
     var db;
 
     this.init = function () {
-      return new P(function (resolve, reject) {
+      return new Promise(function (resolve, reject) {
         var idb = window.indexedDB;
 
         var req = idb.open(namespace, 2 /*version*/);
@@ -297,7 +276,7 @@
 
 
     this.remove = function (key) {
-      return new P(function (resolve, reject) {
+      return new Promise(function (resolve, reject) {
         var tx = db.transaction('kv', 'readwrite');
 
         tx.oncomplete = function () { resolve(); };
@@ -313,7 +292,7 @@
 
 
     this.set = function (key, value, expire) {
-      return new P(function (resolve, reject) {
+      return new Promise(function (resolve, reject) {
         var tx = db.transaction('kv', 'readwrite');
 
         tx.oncomplete = function () { resolve(); };
@@ -329,7 +308,7 @@
 
 
     this.get = function (key) {
-      return new P(function (resolve, reject) {
+      return new Promise(function (resolve, reject) {
         var tx = db.transaction('kv');
 
         // tx.oncomplete = function () { resolve(result); };
@@ -346,7 +325,7 @@
 
 
     this.clear = function (expiredOnly) {
-      return new P(function (resolve, reject) {
+      return new Promise(function (resolve, reject) {
         var keyrange = window.IDBKeyRange,
             tx       = db.transaction('kv', 'readwrite'),
             store    = tx.objectStore('kv');
@@ -418,7 +397,7 @@
     var db = null;
     // var init_done = false;
 
-    _each(storesList, function (name) {
+    storesList.forEach(function (name) {
       // do storage names case insensitive
       name = name.toLowerCase();
 
@@ -443,7 +422,7 @@
     }
 
     function createInit() {
-      return P.resolve()
+      return Promise.resolve()
         .then(function () {
           if (!db) throw new Error('No available db');
           return db.init().then(function () {
@@ -499,7 +478,7 @@
     this.expire       = options.expire || 30 * 24;  // 30 days
     this.isValidItem  = options.isValidItem || null;
 
-    this.stores = _isArray(options.stores) ? options.stores : [ 'indexeddb', 'websql', 'localstorage' ];
+    this.stores = Array.isArray(options.stores) ? options.stores : [ 'indexeddb', 'websql', 'localstorage' ];
 
     var storage = null;
 
@@ -508,7 +487,7 @@
     }
 
     function getUrl(url) {
-      return new P(function (resolve, reject) {
+      return new Promise(function (resolve, reject) {
         var xhr = new XMLHttpRequest();
         xhr.open('GET', url);
         xhr.onreadystatechange = function () {
@@ -543,7 +522,7 @@
     function createCacheObj(obj, response) {
       var cacheObj = {};
 
-      _each([ 'url', 'key', 'unique' ], function (key) {
+      [ 'url', 'key', 'unique' ].forEach(function (key) {
         if (obj[key]) cacheObj[key] = obj[key];
       });
 
@@ -583,7 +562,7 @@
 
 
     function fetch(obj) {
-      if (!obj.url) return P.resolve();
+      if (!obj.url) return Promise.resolve();
 
       obj.key = (obj.key || obj.url);
 
@@ -739,18 +718,18 @@
     this.require = function (resources) {
       createStorage();
 
-      return new P(function (resolve, reject) {
+      return new Promise(function (resolve, reject) {
         var result = [], exec_pos = 0,
-            res = _isArray(resources) ? resources : [ resources ];
+            res = Array.isArray(resources) ? resources : [ resources ];
 
         if (!resources) {
           resolve();
           return;
         }
 
-        _each(res, function (r, i) { result[i] = false; });
+        res.forEach(function (r, i) { result[i] = false; });
 
-        _each(res, function (r, i) {
+        res.forEach(function (r, i) {
           if (typeof r === 'string') res[i] = { url: r };
 
           fetch(res[i]).then(function () {
@@ -768,7 +747,7 @@
             exec_pos = k;
 
             if (exec_pos >= res.length) {
-              resolve(_isArray(resources) ? result : result[0]);
+              resolve(Array.isArray(resources) ? result : result[0]);
             }
           }, function (err) {
             reject(err);
@@ -779,7 +758,7 @@
 
 
     // Create proxy methods (init store then subcall)
-    _each([ 'remove', 'get', 'set', 'clear' ], function (method) {
+    [ 'remove', 'get', 'set', 'clear' ].forEach(function (method) {
       self[method] = function () {
         createStorage();
         return storage[method].apply(storage, arguments);
@@ -788,8 +767,8 @@
 
 
     this.addHandler = function (types, handler) {
-      types = _isArray(types) ? types : [ types ];
-      _each(types, function (type) { handlers[type] = handler; });
+      types = Array.isArray(types) ? types : [ types ];
+      types.forEach(function (type) { handlers[type] = handler; });
     };
 
 
