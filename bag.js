@@ -276,9 +276,7 @@
         tx.oncomplete = function () { resolve() }
         tx.onerror = tx.onabort = function (e) { reject(e.target) }
 
-        // IE 8 not allow to use reserved keywords as functions. More info:
-        // http://tiffanybbrown.com/2013/09/10/expected-identifier-bug-in-internet-explorer-8/
-        tx.objectStore('kv')['delete'](key).onerror = function () {
+        tx.objectStore('kv').delete(key).onerror = function () {
           tx.abort()
         }
       })
@@ -338,12 +336,10 @@
           cursor.onsuccess = function (e) {
             var _cursor = e.target.result
             if (_cursor) {
-              // IE 8 not allow to use reserved keywords as functions (`delete` and `continue`). More info:
-              // http://tiffanybbrown.com/2013/09/10/expected-identifier-bug-in-internet-explorer-8/
-              store['delete'](_cursor.primaryKey).onerror = function () {
+              store.delete(_cursor.primaryKey).onerror = function () {
                 tx.abort()
               }
-              _cursor['continue']()
+              _cursor.continue()
             }
           }
 
