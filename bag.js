@@ -7,112 +7,109 @@
  * License MIT
  */
 
-/*global define*/
+/* global define */
 
 (function (root, factory) {
-  'use strict';
+  'use strict'
 
   if (typeof define === 'function' && define.amd) {
-    define(factory);
+    define(factory)
   } else if (typeof module === 'object' && typeof module.exports === 'object') {
-    module.exports = factory();
+    module.exports = factory()
   } else {
-    root.Bag = factory();
+    root.Bag = factory()
   }
-} (this, function () {
-  'use strict';
+}(this, function () {
+  'use strict'
 
-  var head = document.head || document.getElementsByTagName('head')[0];
+  var head = document.head || document.getElementsByTagName('head')[0]
 
-  //////////////////////////////////////////////////////////////////////////////
-  // helpers
 
-  function _default(obj, src) {
-    // extend obj with src properties if not exists;
+  function _default (obj, src) {
+    // extend obj with src properties if not exists
     Object.keys(src).forEach(function (key) {
-      if (!Object.prototype.hasOwnProperty.call(obj, key)) obj[key] = src[key];
-    });
-    return obj;
+      if (!Object.prototype.hasOwnProperty.call(obj, key)) obj[key] = src[key]
+    })
+    return obj
   }
 
 
-  //////////////////////////////////////////////////////////////////////////////
   // Adapters for Store class
 
-  function DomStorage(namespace) {
-    var self = this;
-    var _ns = namespace + '__';
+  function DomStorage (namespace) {
+    var self = this
+    var _ns = namespace + '__'
 
-    this.init = function () { return Promise.resolve(); };
+    this.init = function () { return Promise.resolve() }
 
     this.remove = function (key) {
-      localStorage.removeItem(_ns + key);
-      return Promise.resolve();
-    };
+      localStorage.removeItem(_ns + key)
+      return Promise.resolve()
+    }
 
 
     this.set = function (key, value, expire) {
       var obj = {
         value: value,
         expire: expire
-      };
+      }
 
       return new Promise(function (resolve, reject) {
         try {
-          localStorage.setItem(_ns + key, JSON.stringify(obj));
-          resolve();
+          localStorage.setItem(_ns + key, JSON.stringify(obj))
+          resolve()
         } catch (e) {
           // On quota error try to reset storage & try again.
           // Just remove all keys, without conditions, no optimizations needed.
           if (e.name.toUpperCase().indexOf('QUOTA') >= 0) {
             try {
               Object.keys(localStorage).forEach(function (name) {
-                var k = name.split(_ns)[1];
-                if (k) { self.remove(k); }
-              });
-              localStorage.setItem(_ns + key, JSON.stringify(obj));
-              resolve();
+                var k = name.split(_ns)[1]
+                if (k) { self.remove(k) }
+              })
+              localStorage.setItem(_ns + key, JSON.stringify(obj))
+              resolve()
             } catch (e2) {
-              reject(e2);
+              reject(e2)
             }
           } else {
-            reject(e);
+            reject(e)
           }
         }
-      });
-    };
+      })
+    }
 
 
     this.get = function (key, raw) {
       return new Promise(function (resolve, reject) {
         try {
-          var data = localStorage.getItem(_ns + key);
+          var data = localStorage.getItem(_ns + key)
 
           // return `undefined` for missed keys
-          if (data === null) return resolve();
+          if (data === null) return resolve()
 
-          data = JSON.parse(localStorage.getItem(_ns + key));
+          data = JSON.parse(localStorage.getItem(_ns + key))
 
-          resolve(data = raw ? data : data.value);
+          resolve(data = raw ? data : data.value)
         } catch (e) {
-          reject(new Error("Can't read key: " + key));
+          reject(new Error("Can't read key: " + key))
         }
-      });
-    };
+      })
+    }
 
 
     this.clear = function (expiredOnly) {
-      var now = +new Date();
-      var p = Promise.resolve();
+      var now = +new Date()
+      var p = Promise.resolve()
 
       Object.keys(localStorage).forEach(function (name) {
-        var key = name.split(_ns)[1];
+        var key = name.split(_ns)[1]
 
-        if (!key) return;
+        if (!key) return
 
         if (!expiredOnly) {
-          p = p.then(function () { self.remove(key); });
-          return;
+          p = p.then(function () { self.remove(key) })
+          return
         }
 
         p = p.then(function () {
@@ -120,52 +117,52 @@
             .then(function (raw) {
               if (raw && (raw.expire > 0) && ((raw.expire - now) < 0)) {
                 // no need to chain promise, because operation is sync
-                self.remove(key);
+                self.remove(key)
               }
-            });
-        });
-      });
+            })
+        })
+      })
 
-      return p;
-    };
+      return p
+    }
   }
 
 
   DomStorage.exists = function () {
     try {
-      localStorage.setItem('__ls_test__', '__ls_test__');
-      localStorage.removeItem('__ls_test__');
-      return true;
+      localStorage.setItem('__ls_test__', '__ls_test__')
+      localStorage.removeItem('__ls_test__')
+      return true
     } catch (e) {
-      return false;
+      return false
     }
-  };
+  }
 
 
 
-  function WebSql(namespace) {
-    var db;
+  function WebSql (namespace) {
+    var db
 
 
     this.init = function () {
       return new Promise(function (resolve, reject) {
-        db = window.openDatabase(namespace, '1.0', 'bag.js db', 2e5);
+        db = window.openDatabase(namespace, '1.0', 'bag.js db', 2e5)
 
         if (!db) {
-          reject("Can't open websql database");
-          return;
+          reject(new Error("Can't open websql database"))
+          return
         }
 
         db.transaction(function (tx) {
           tx.executeSql(
             'CREATE TABLE IF NOT EXISTS kv (key TEXT PRIMARY KEY, value TEXT, expire INTEGER KEY)',
             [],
-            function () { resolve(); },
-            function (tx, err) { reject(err); }
-          );
-        });
-      });
-    };
+            function () { resolve() },
+            function (tx, err) { reject(err) }
+          )
+        })
+      })
+    }
 
 
     this.remove = function (key) {
@@ -173,13 +170,13 @@
         db.transaction(function (tx) {
           tx.executeSql(
             'DELETE FROM kv WHERE key = ?',
-            [ key ],
-            function () { resolve(); },
-            function (tx, err) { reject(err); }
-          );
-        });
-      });
-    };
+            [key],
+            function () { resolve() },
+            function (tx, err) { reject(err) }
+          )
+        })
+      })
+    }
 
 
     this.set = function (key, value, expire) {
@@ -187,13 +184,13 @@
         db.transaction(function (tx) {
           tx.executeSql(
             'INSERT OR REPLACE INTO kv (key, value, expire) VALUES (?, ?, ?)',
-            [ key, JSON.stringify(value), expire ],
-            function () { resolve(); },
-            function (tx, err) { reject(err); }
-          );
-        });
-      });
-    };
+            [key, JSON.stringify(value), expire],
+            function () { resolve() },
+            function (tx, err) { reject(err) }
+          )
+        })
+      })
+    }
 
 
     this.get = function (key) {
@@ -201,582 +198,576 @@
         db.readTransaction(function (tx) {
           tx.executeSql(
             'SELECT value FROM kv WHERE key = ?',
-            [ key ],
+            [key],
             function (tx, result) {
               // return `undefined` for missed keys
-              if (result.rows.length === 0) return resolve();
+              if (result.rows.length === 0) return resolve()
 
-              var value = result.rows.item(0).value;
+              var value = result.rows.item(0).value
 
               try {
-                resolve(JSON.parse(value));
+                resolve(JSON.parse(value))
               } catch (e) {
-                reject(new Error("Can't unserialise data: " + value));
+                reject(new Error("Can't unserialise data: " + value))
               }
             },
-            function (tx, err) { reject(err); }
-          );
-        });
-      });
-    };
+            function (tx, err) { reject(err) }
+          )
+        })
+      })
+    }
 
 
     this.clear = function (expiredOnly) {
       return new Promise(function (resolve, reject) {
         db.transaction(function (tx) {
           tx.executeSql(
-            expiredOnly ?
-              'DELETE FROM kv WHERE expire > 0 AND expire < ?'
-            :
-              'DELETE FROM kv',
-            expiredOnly ? [ +new Date() ] : [],
-            function () { resolve(); },
-            function (tx, err) { reject(err); }
-          );
-        });
-      });
-    };
+            expiredOnly ? 'DELETE FROM kv WHERE expire > 0 AND expire < ?' : 'DELETE FROM kv',
+            expiredOnly ? [+new Date()] : [],
+            function () { resolve() },
+            function (tx, err) { reject(err) }
+          )
+        })
+      })
+    }
   }
 
 
-  WebSql.exists = function () { return (!!window.openDatabase); };
+  WebSql.exists = function () { return (!!window.openDatabase) }
 
 
 
-  function Idb(namespace) {
-    var db;
+  function Idb (namespace) {
+    var db
 
     this.init = function () {
       return new Promise(function (resolve, reject) {
-        var idb = window.indexedDB;
+        var idb = window.indexedDB
 
-        var req = idb.open(namespace, 2 /*version*/);
+        var req = idb.open(namespace, 2 /* version */)
 
         req.onsuccess = function (e) {
-          db = e.target.result;
-          resolve();
-        };
+          db = e.target.result
+          resolve()
+        }
         req.onblocked = function (e) {
-          reject(new Error('IndexedDB blocked. ' + e.target.errorCode));
-        };
+          reject(new Error('IndexedDB blocked. ' + e.target.errorCode))
+        }
         req.onerror = function (e) {
-          reject(new Error('IndexedDB opening error. ' + e.target.errorCode));
-        };
+          reject(new Error('IndexedDB opening error. ' + e.target.errorCode))
+        }
         req.onupgradeneeded = function (e) {
-          db = e.target.result;
+          db = e.target.result
 
-          if (db.objectStoreNames.contains('kv')) db.deleteObjectStore('kv');
+          if (db.objectStoreNames.contains('kv')) db.deleteObjectStore('kv')
 
-          var store = db.createObjectStore('kv', { keyPath: 'key' });
+          var store = db.createObjectStore('kv', { keyPath: 'key' })
 
-          store.createIndex('expire', 'expire', { unique: false });
-        };
-      });
-    };
+          store.createIndex('expire', 'expire', { unique: false })
+        }
+      })
+    }
 
 
     this.remove = function (key) {
       return new Promise(function (resolve, reject) {
-        var tx = db.transaction('kv', 'readwrite');
+        var tx = db.transaction('kv', 'readwrite')
 
-        tx.oncomplete = function () { resolve(); };
-        tx.onerror = tx.onabort = function (e) { reject(e.target); };
+        tx.oncomplete = function () { resolve() }
+        tx.onerror = tx.onabort = function (e) { reject(e.target) }
 
         // IE 8 not allow to use reserved keywords as functions. More info:
         // http://tiffanybbrown.com/2013/09/10/expected-identifier-bug-in-internet-explorer-8/
         tx.objectStore('kv')['delete'](key).onerror = function () {
-          tx.abort();
-        };
-      });
-    };
+          tx.abort()
+        }
+      })
+    }
 
 
     this.set = function (key, value, expire) {
       return new Promise(function (resolve, reject) {
-        var tx = db.transaction('kv', 'readwrite');
+        var tx = db.transaction('kv', 'readwrite')
 
-        tx.oncomplete = function () { resolve(); };
-        tx.onerror = tx.onabort = function (e) { reject(e.target); };
+        tx.oncomplete = function () { resolve() }
+        tx.onerror = tx.onabort = function (e) { reject(e.target) }
 
         tx.objectStore('kv').put({
           key: key,
           value: value,
           expire: expire
-        }).onerror = function () { tx.abort(); };
-      });
-    };
+        }).onerror = function () { tx.abort() }
+      })
+    }
 
 
     this.get = function (key) {
       return new Promise(function (resolve, reject) {
-        var tx = db.transaction('kv');
+        var tx = db.transaction('kv')
 
-        // tx.oncomplete = function () { resolve(result); };
+        // tx.oncomplete = function () { resolve(result) }
         tx.onerror = tx.onabort = function (e) {
-          reject(new Error('Key get error: ' + e.target));
-        };
+          reject(new Error('Key get error: ' + e.target))
+        }
 
         tx.objectStore('kv').get(key).onsuccess = function (e) {
-          if (e.target.result) resolve(e.target.result.value);
-          else resolve();
-        };
-      });
-    };
+          if (e.target.result) resolve(e.target.result.value)
+          else resolve()
+        }
+      })
+    }
 
 
     this.clear = function (expiredOnly) {
       return new Promise(function (resolve, reject) {
-        var keyrange = window.IDBKeyRange,
-            tx       = db.transaction('kv', 'readwrite'),
-            store    = tx.objectStore('kv');
+        var keyrange = window.IDBKeyRange
+        var tx       = db.transaction('kv', 'readwrite')
+        var store    = tx.objectStore('kv')
 
-        tx = db.transaction('kv', 'readwrite');
-        store = tx.objectStore('kv');
+        tx = db.transaction('kv', 'readwrite')
+        store = tx.objectStore('kv')
 
-        tx.oncomplete = function () { resolve(); };
+        tx.oncomplete = function () { resolve() }
         tx.onerror = tx.onabort = function (e) {
-          reject(new Error('Clear error: ', e.target));
-        };
+          reject(new Error('Clear error: ', e.target))
+        }
 
         if (expiredOnly) {
-          var cursor = store.index('expire').openCursor(keyrange.bound(1, +new Date()));
+          var cursor = store.index('expire').openCursor(keyrange.bound(1, +new Date()))
 
           cursor.onsuccess = function (e) {
-            var _cursor = e.target.result;
+            var _cursor = e.target.result
             if (_cursor) {
               // IE 8 not allow to use reserved keywords as functions (`delete` and `continue`). More info:
               // http://tiffanybbrown.com/2013/09/10/expected-identifier-bug-in-internet-explorer-8/
               store['delete'](_cursor.primaryKey).onerror = function () {
-                tx.abort();
-              };
-              _cursor['continue']();
+                tx.abort()
+              }
+              _cursor['continue']()
             }
-          };
+          }
 
-          return;
+          return
         }
 
         // Just clear everything
-        tx.objectStore('kv').clear().onerror = function () { tx.abort(); };
-      });
-    };
+        tx.objectStore('kv').clear().onerror = function () { tx.abort() }
+      })
+    }
   }
 
 
   Idb.exists = function () {
-    var db =  window.indexedDB;
+    var db =  window.indexedDB
 
-    if (!db) return false;
+    if (!db) return false
 
     // Check outdated idb implementations, where `onupgradeneede` event doesn't work,
     // see https://github.com/pouchdb/pouchdb/issues/1207 for more details
-    var dbName = '__idb_test__';
-    var result = db.open(dbName, 1).onupgradeneeded === null;
+    var dbName = '__idb_test__'
+    var result = db.open(dbName, 1).onupgradeneeded === null
 
-    if (db.deleteDatabase) db.deleteDatabase(dbName);
+    if (db.deleteDatabase) db.deleteDatabase(dbName)
 
-    return result;
-  };
+    return result
+  }
 
 
 
-  /////////////////////////////////////////////////////////////////////////////
   // key/value storage with expiration
 
   var storeAdapters = {
     indexeddb: Idb,
     websql: WebSql,
     localstorage: DomStorage
-  };
+  }
 
 
   // namespace - db name or similar
   // storesList - array of allowed adapter names to use
   //
-  function Storage(namespace, storesList) {
-    var db = null;
-    // var init_done = false;
+  function Storage (namespace, storesList) {
+    var db = null
+    // var init_done = false
 
     storesList.forEach(function (name) {
       // do storage names case insensitive
-      name = name.toLowerCase();
+      name = name.toLowerCase()
 
       if (!storeAdapters[name]) {
-        throw new Error('Wrong storage adapter name: ' + name, storesList);
+        throw new Error('Wrong storage adapter name: ' + name, storesList)
       }
 
       if (storeAdapters[name].exists() && !db) {
-        db = new storeAdapters[name](namespace);
-        return false; // terminate search on first success
+        db = new storeAdapters[name](namespace)
+        return false // terminate search on first success
       }
-    });
+    })
 
     if (!db) {
       /* eslint-disable no-console */
       // If no adaprets - don't make error for correct fallback.
       // Just log that we continue work without storing results.
       if (typeof console !== 'undefined' && console.log) {
-        console.log('None of requested storages available: ' + storesList);
+        console.log('None of requested storages available: ' + storesList)
       }
       /* eslint-enable no-console */
     }
 
-    function createInit() {
+    function createInit () {
       return Promise.resolve()
         .then(function () {
-          if (!db) throw new Error('No available db');
+          if (!db) throw new Error('No available db')
           return db.init().then(function () {
-            // init_done = true;
-            db.clear(true); // clear expired
-          });
-        });
+            // init_done = true
+            db.clear(true) // clear expired
+          })
+        })
     }
 
-    var _waitInit;
+    var _waitInit
 
     this.init = function () {
-      if (!_waitInit) _waitInit = createInit();
-      return _waitInit;
-    };
+      if (!_waitInit) _waitInit = createInit()
+      return _waitInit
+    }
 
 
     this.set = function (key, value, expire) {
       return this.init().then(function () {
-        return db.set(key, value, expire ? +(new Date()) + (expire * 1000) : 0);
-      });
-    };
+        return db.set(key, value, expire ? +(new Date()) + (expire * 1000) : 0)
+      })
+    }
 
 
     this.get = function (key) {
-      return this.init().then(function () { return db.get(key); });
-    };
+      return this.init().then(function () { return db.get(key) })
+    }
 
 
     this.remove = function (key) {
-      return this.init().then(function () { return db.remove(key); });
-    };
+      return this.init().then(function () { return db.remove(key) })
+    }
 
 
     this.clear = function (expiredOnly) {
-      return this.init().then(function () { return db.clear(expiredOnly); });
-    };
+      return this.init().then(function () { return db.clear(expiredOnly) })
+    }
   }
 
 
-  //////////////////////////////////////////////////////////////////////////////
   // Bag class implementation
 
-  function Bag(options) {
-    if (!(this instanceof Bag)) return new Bag(options);
+  function Bag (options) {
+    if (!(this instanceof Bag)) return new Bag(options)
 
-    var self = this;
+    var self = this
 
-    options = options || {};
+    options = options || {}
 
-    this.prefix       = options.prefix || 'bag';
-    this.timeout      = options.timeout || 20;    // 20 seconds
-    this.expire       = options.expire || 30 * 24;  // 30 days
-    this.isValidItem  = options.isValidItem || null;
+    this.prefix       = options.prefix || 'bag'
+    this.timeout      = options.timeout || 20    // 20 seconds
+    this.expire       = options.expire || 30 * 24  // 30 days
+    this.isValidItem  = options.isValidItem || null
 
-    this.stores = Array.isArray(options.stores) ? options.stores : [ 'indexeddb', 'websql', 'localstorage' ];
+    this.stores = Array.isArray(options.stores) ? options.stores : ['indexeddb', 'websql', 'localstorage']
 
-    var storage = null;
+    var storage = null
 
-    function createStorage() {
-      if (!storage) storage = new Storage(self.prefix, self.stores);
+    function createStorage () {
+      if (!storage) storage = new Storage(self.prefix, self.stores)
     }
 
-    function getUrl(url) {
+    function getUrl (url) {
       return new Promise(function (resolve, reject) {
-        var xhr = new XMLHttpRequest();
-        xhr.open('GET', url);
+        var xhr = new XMLHttpRequest()
+        xhr.open('GET', url)
         xhr.onreadystatechange = function () {
           if (xhr.readyState === 4) {
             if (xhr.status === 200) {
               resolve({
                 content: xhr.responseText,
                 type: xhr.getResponseHeader('content-type')
-              });
+              })
             } else {
               reject(new Error("Can't open url " + url +
-                 (xhr.status ? xhr.statusText + ' (' + xhr.status + ')' : '')));
+                 (xhr.status ? xhr.statusText + ' (' + xhr.status + ')' : '')))
             }
           }
-        };
+        }
 
         setTimeout(function () {
           if (xhr.readyState < 4) {
-            xhr.abort();
-            reject(new Error('Timeout'));
+            xhr.abort()
+            reject(new Error('Timeout'))
           }
-        }, self.timeout * 1000);
+        }, self.timeout * 1000)
 
         try {
-          xhr.send();
+          xhr.send()
         } catch (err) {
-          reject(err);
+          reject(err)
         }
-      });
+      })
     }
 
-    function createCacheObj(obj, response) {
+    function createCacheObj (obj, response) {
       var cacheObj = {};
 
-      [ 'url', 'key', 'unique' ].forEach(function (key) {
-        if (obj[key]) cacheObj[key] = obj[key];
-      });
+      ['url', 'key', 'unique'].forEach(function (key) {
+        if (obj[key]) cacheObj[key] = obj[key]
+      })
 
-      var now = +new Date();
+      var now = +new Date()
 
-      cacheObj.data = response.content;
-      cacheObj.originalType = response.type;
-      cacheObj.type = obj.type || response.type;
-      cacheObj.stamp = now;
+      cacheObj.data = response.content
+      cacheObj.originalType = response.type
+      cacheObj.type = obj.type || response.type
+      cacheObj.stamp = now
 
-      return cacheObj;
+      return cacheObj
     }
 
-    function saveUrl(obj) {
+    function saveUrl (obj) {
       return getUrl(obj.url_real)
         .then(function (result) {
-          var delay = (obj.expire || self.expire) * 60 * 60; // in seconds
-          var cached = createCacheObj(obj, result);
+          var delay = (obj.expire || self.expire) * 60 * 60 // in seconds
+          var cached = createCacheObj(obj, result)
 
           return storage.set(obj.key, cached, delay)
             // Suppress error - have to return data anyway
             .then(
-              function () { return _default(obj, cached); },
-              function () { return _default(obj, cached); }
-            );
-        });
+              function () { return _default(obj, cached) },
+              function () { return _default(obj, cached) }
+            )
+        })
     }
 
 
-    function isCacheInvalid(cached, obj) {
+    function isCacheInvalid (cached, obj) {
       return !cached ||
         cached.expire - +new Date() < 0  ||
         obj.unique !== cached.unique ||
         obj.url !== cached.url ||
-        (self.isValidItem && !self.isValidItem(cached, obj));
+        (self.isValidItem && !self.isValidItem(cached, obj))
     }
 
 
-    function fetch(obj) {
-      if (!obj.url) return Promise.resolve();
+    function fetch (obj) {
+      if (!obj.url) return Promise.resolve()
 
-      obj.key = (obj.key || obj.url);
+      obj.key = (obj.key || obj.url)
 
       return storage.get(obj.key)
         // Suppress error, we can get it in private mode (Firefox)
-        .then(function (data) { return data; }, function () { return null; })
+        .then(function (data) { return data }, function () { return null })
         .then(function (cached) {
-          if (!cached && obj.cached) throw new Error('Cache not exists');
+          if (!cached && obj.cached) throw new Error('Cache not exists')
 
           // if can't get object from store, then just load it from web.
-          obj.execute = (obj.execute !== false);
-          var shouldFetch = !cached || isCacheInvalid(cached, obj);
+          obj.execute = (obj.execute !== false)
+          var shouldFetch = !cached || isCacheInvalid(cached, obj)
 
           // If don't have to load new date - return one from cache
           if (!obj.live && !shouldFetch) {
-            obj.type = obj.type || cached.originalType;
-            return _default(obj, cached);
+            obj.type = obj.type || cached.originalType
+            return _default(obj, cached)
           }
 
           // calculate loading url
-          obj.url_real = obj.url;
+          obj.url_real = obj.url
           if (obj.unique) {
             // set parameter to prevent browser cache
-            obj.url_real = obj.url + ((obj.url.indexOf('?') > 0) ? '&' : '?') + 'bag-unique=' + obj.unique;
+            obj.url_real = obj.url + ((obj.url.indexOf('?') > 0) ? '&' : '?') + 'bag-unique=' + obj.unique
           }
 
           return saveUrl(obj)
             .then(
-              function () { return obj; },
+              function () { return obj },
               function (err) {
-                if (!cached) throw err;
+                if (!cached) throw err
 
-                obj.type = obj.type || cached.originalType;
-                return _default(obj, cached);
+                obj.type = obj.type || cached.originalType
+                return _default(obj, cached)
               }
-            );
-        });
+            )
+        })
     }
 
-    ////////////////////////////////////////////////////////////////////////////
     // helpers to set absolute sourcemap url
 
     /* eslint-disable max-len */
-    var sourceMappingRe = /(?:^([ \t]*\/\/[@|#][ \t]+sourceMappingURL=)(.+?)([ \t]*)$)|(?:^([ \t]*\/\*[@#][ \t]+sourceMappingURL=)(.+?)([ \t]*\*\/[ \t])*$)/mg;
+    var sourceMappingRe = /(?:^([ \t]*\/\/[@|#][ \t]+sourceMappingURL=)(.+?)([ \t]*)$)|(?:^([ \t]*\/\*[@#][ \t]+sourceMappingURL=)(.+?)([ \t]*\*\/[ \t])*$)/mg
     /* eslint-enable max-len */
 
-    function parse_url(url) {
-      var pattern = new RegExp('^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\\?([^#]*))?(#(.*))?');
-      var matches = url.match(pattern);
+    function parse_url (url) {
+      // eslint-disable-next-line prefer-regex-literals
+      var pattern = new RegExp('^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\\?([^#]*))?(#(.*))?')
+      var matches = url.match(pattern)
       return {
         scheme: matches[2],
         authority: matches[4],
         path: matches[5],
         query: matches[7],
         fragment: matches[9]
-      };
+      }
     }
 
-    function patchMappingUrl(obj) {
-      var refUrl = parse_url(obj.url);
-      var done = false;
+    function patchMappingUrl (obj) {
+      var refUrl = parse_url(obj.url)
+      var done = false
       var res = obj.data.replace(sourceMappingRe, function (match, p1, p2, p3, p4, p5, p6) {
-        if (!match) return null;
-        done = true;
+        if (!match) return null
+        done = true
         // select matched group of params
-        if (!p1) { p1 = p4; p2 = p5; p3 = p6; }
+        if (!p1) {
+          p1 = p4
+          p2 = p5
+          p3 = p6
+        }
 
-        var mapUrl = parse_url(p2);
+        var mapUrl = parse_url(p2)
 
-        var scheme = (mapUrl.scheme ? mapUrl.scheme : refUrl.scheme) || window.location.protocol.slice(0, -1);
-        var authority = (mapUrl.authority ? mapUrl.authority : refUrl.authority) || window.location.host;
+        var scheme = (mapUrl.scheme ? mapUrl.scheme : refUrl.scheme) || window.location.protocol.slice(0, -1)
+        var authority = (mapUrl.authority ? mapUrl.authority : refUrl.authority) || window.location.host
         /* eslint-disable max-len */
-        var path = mapUrl.path[0] === '/' ? mapUrl.path : refUrl.path.split('/').slice(0, -1).join('/') + '/' + mapUrl.path;
+        var path = mapUrl.path[0] === '/' ? mapUrl.path : refUrl.path.split('/').slice(0, -1).join('/') + '/' + mapUrl.path
         /* eslint-enable max-len */
-        return p1 + (scheme + '://' + authority + path) + p3;
-      });
-      return done ? res : '';
+        return p1 + (scheme + '://' + authority + path) + p3
+      })
+      return done ? res : ''
     }
 
-    ////////////////////////////////////////////////////////////////////////////
 
     var handlers = {
-      'application/javascript': function injectScript(obj) {
-        var script = document.createElement('script'), txt;
+      'application/javascript': function injectScript (obj) {
+        var script = document.createElement('script')
+        var txt
 
         // try to change sourcemap address to absolute
-        txt = patchMappingUrl(obj);
+        txt = patchMappingUrl(obj)
         if (!txt) {
           // or add script name for dev tools
-          txt = obj.data + '\n//# sourceURL=' + obj.url;
+          txt = obj.data + '\n//# sourceURL=' + obj.url
         }
 
         // Have to use .text, since we support IE8,
         // which won't allow appending to a script
-        script.text = txt;
-        head.appendChild(script);
-        return;
+        script.text = txt
+        head.appendChild(script)
       },
 
-      'text/css': function injectStyle(obj) {
-        var style = document.createElement('style'), txt;
+      'text/css': function injectStyle (obj) {
+        var style = document.createElement('style')
+        var txt
 
         // try to change sourcemap address to absolute
-        txt = patchMappingUrl(obj);
+        txt = patchMappingUrl(obj)
         if (!txt) {
           // or add stylesheet script name for dev tools
-          txt = obj.data + '\n/*# sourceURL=' + obj.url + ' */';
+          txt = obj.data + '\n/*# sourceURL=' + obj.url + ' */'
         }
 
         // Needed to enable `style.styleSheet` in IE
-        style.setAttribute('type', 'text/css');
+        style.setAttribute('type', 'text/css')
 
         if (style.styleSheet) {
           // We should append style element to DOM before assign css text to
           // workaround IE bugs with `@import` and `@font-face`.
           // https://github.com/andrewwakeling/ie-css-bugs
-          head.appendChild(style);
+          head.appendChild(style)
 
-          style.styleSheet.cssText = txt; // IE method
+          style.styleSheet.cssText = txt // IE method
         } else {
-          style.appendChild(document.createTextNode(txt)); // others
-          head.appendChild(style);
+          style.appendChild(document.createTextNode(txt)) // others
+          head.appendChild(style)
         }
-
-        return;
       }
-    };
+    }
 
 
-    function execute(obj) {
-      if (!obj.type) return;
+    function execute (obj) {
+      if (!obj.type) return
 
       // Cut off encoding if exists:
       // application/javascript; charset=UTF-8
-      var handlerName = obj.type.split(';')[0];
+      var handlerName = obj.type.split(';')[0]
 
       // Fix outdated mime types if needed, to use single handler
       if (handlerName === 'application/x-javascript' || handlerName === 'text/javascript') {
-        handlerName = 'application/javascript';
+        handlerName = 'application/javascript'
       }
 
-      if (handlers[handlerName]) handlers[handlerName](obj);
-
-      return;
+      if (handlers[handlerName]) handlers[handlerName](obj)
     }
-
-    ////////////////////////////////////////////////////////////////////////////
 
     //
     // Public methods
     //
 
     this.require = function (resources) {
-      createStorage();
+      createStorage()
 
       return new Promise(function (resolve, reject) {
-        var result = [], exec_pos = 0,
-            res = Array.isArray(resources) ? resources : [ resources ];
+        var result = []
+        var exec_pos = 0
+        var res = Array.isArray(resources) ? resources : [resources]
 
         if (!resources) {
-          resolve();
-          return;
+          resolve()
+          return
         }
 
-        res.forEach(function (r, i) { result[i] = false; });
+        res.forEach(function (r, i) { result[i] = false })
 
         res.forEach(function (r, i) {
-          if (typeof r === 'string') res[i] = { url: r };
+          if (typeof r === 'string') res[i] = { url: r }
 
           fetch(res[i]).then(function () {
             // return content only, if one need full info -
             // check input object, that will be extended.
-            result[i] = res[i].data;
+            result[i] = res[i].data
 
-            var k;
+            var k
 
             for (k = exec_pos; k < result.length; k++) {
-              if (result[k] === false) break;
-              if (res[k].execute) execute(res[k]);
+              if (result[k] === false) break
+              if (res[k].execute) execute(res[k])
             }
 
-            exec_pos = k;
+            exec_pos = k
 
             if (exec_pos >= res.length) {
-              resolve(Array.isArray(resources) ? result : result[0]);
+              resolve(Array.isArray(resources) ? result : result[0])
             }
           }, function (err) {
-            reject(err);
-          });
-        });
-      });
+            reject(err)
+          })
+        })
+      })
     };
 
 
     // Create proxy methods (init store then subcall)
-    [ 'remove', 'get', 'set', 'clear' ].forEach(function (method) {
+    ['remove', 'get', 'set', 'clear'].forEach(function (method) {
       self[method] = function () {
-        createStorage();
-        return storage[method].apply(storage, arguments);
-      };
-    });
+        createStorage()
+        return storage[method].apply(storage, arguments)
+      }
+    })
 
 
     this.addHandler = function (types, handler) {
-      types = Array.isArray(types) ? types : [ types ];
-      types.forEach(function (type) { handlers[type] = handler; });
-    };
+      types = Array.isArray(types) ? types : [types]
+      types.forEach(function (type) { handlers[type] = handler })
+    }
 
 
     this.removeHandler = function (types) {
-      self.addHandler(types/*, undefined*/);
-    };
+      self.addHandler(types/*, undefined */)
+    }
   }
 
-  return Bag;
+  return Bag
 
-}));
+}))
