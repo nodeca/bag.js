@@ -32,6 +32,8 @@ describe('extra tests', function () {
   })
 
 
+  // this test will fail on Electron because they don't have a limit on localStorage, see
+  // https://github.com/electron/electron/issues/8337
   it('reset localstorage (namespace) when quota exceeded (2.5-5Mb)', function () {
     var b = new window.Bag({ stores: ['localstorage'] })
 
@@ -78,8 +80,8 @@ describe('extra tests', function () {
 
   it('init without `new` keyword', function () {
     /* eslint-disable new-cap */
-    assert.instanceOf(new window.Bag(), window.Bag)
-    assert.instanceOf(window.Bag(), window.Bag)
+    assert.ok(new window.Bag() instanceof window.Bag)
+    assert.ok(window.Bag() instanceof window.Bag)
   })
 
 
